@@ -7,9 +7,10 @@ package io.github.some_example_name;
 import com.badlogic.gdx.ApplicationAdapter;
 import com.badlogic.gdx.Gdx;
 import com.badlogic.gdx.Input;
+import com.badlogic.gdx.InputProcessor;
 import com.badlogic.gdx.graphics.*;
+import com.badlogic.gdx.graphics.g3d.utils.AnimationController;
 import com.badlogic.gdx.graphics.g3d.utils.FirstPersonCameraController;
-import com.badlogic.gdx.math.Vector3;
 import net.mgsx.gltf.loaders.gltf.GLTFLoader;
 import net.mgsx.gltf.scene3d.attributes.PBRCubemapAttribute;
 import net.mgsx.gltf.scene3d.attributes.PBRTextureAttribute;
@@ -20,8 +21,7 @@ import net.mgsx.gltf.scene3d.scene.SceneManager;
 import net.mgsx.gltf.scene3d.scene.SceneSkybox;
 import net.mgsx.gltf.scene3d.utils.IBLBuilder;
 
-public class Main extends ApplicationAdapter
-{
+public class Main extends ApplicationAdapter implements AnimationController.AnimationListener {
     private SceneManager sceneManager;
     private SceneAsset sceneAsset;
     private Scene scene;
@@ -34,6 +34,7 @@ public class Main extends ApplicationAdapter
     private SceneSkybox skybox;
     private DirectionalLightEx light;
     private FirstPersonCameraController cameraController;
+
 
     @Override
     public void create() {
@@ -51,6 +52,9 @@ public class Main extends ApplicationAdapter
         camera.far = 200;
         sceneManager.setCamera(camera);
         camera.position.set(0,0.5f, 4f);
+
+
+
 
 
 
@@ -91,14 +95,25 @@ public class Main extends ApplicationAdapter
         sceneManager.updateViewport(width, height);
     }
 
+
     @Override
     public void render() {
         float deltaTime = Gdx.graphics.getDeltaTime();
         time += deltaTime;
 
         cameraController.update();
-        if(Gdx.input.isButtonJustPressed(Input.Keys.SPACE))
-            scene.animationController.setAnimation("left");
+
+        if(Gdx.input.isKeyJustPressed(Input.Keys.SPACE)) {
+            scene.animationController.action("left.001", 1,1f,this,0.5f);
+
+
+        }
+
+
+
+
+
+
 
 
         // render
@@ -116,5 +131,15 @@ public class Main extends ApplicationAdapter
         specularCubemap.dispose();
         brdfLUT.dispose();
         skybox.dispose();
+    }
+
+    @Override
+    public void onEnd(AnimationController.AnimationDesc animation) {
+
+    }
+
+    @Override
+    public void onLoop(AnimationController.AnimationDesc animation) {
+
     }
 }
