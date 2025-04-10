@@ -48,8 +48,8 @@ public class Main extends ApplicationAdapter implements AnimationController.Anim
         // setup camera (The BoomBox model is very small so you may need to adapt camera settings for your scene)
         camera = new PerspectiveCamera(60f, Gdx.graphics.getWidth(), Gdx.graphics.getHeight());
         float d = .02f;
-        camera.near = d / 1000f;
-        camera.far = 200;
+        camera.near =1;
+        camera.far = 20000;
         sceneManager.setCamera(camera);
         camera.position.set(0,0.5f, 4f);
 
