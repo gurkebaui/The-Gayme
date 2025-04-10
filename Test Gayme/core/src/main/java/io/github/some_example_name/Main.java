@@ -51,7 +51,8 @@ public class Main extends ApplicationAdapter implements AnimationController.Anim
         camera.near =1;
         camera.far = 20000;
         sceneManager.setCamera(camera);
-        camera.position.set(0,0.5f, 4f);
+        camera.position.set(10f,20f, 40f);
+        camera.rotate(-20,20f,0f,0f);
 
 
 
