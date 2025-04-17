@@ -18,6 +18,16 @@ allprojects {
   apply plugin: 'eclipse'
   apply plugin: 'idea'
 
+  ext {
+
+    mundusVersion = 'v0.5.1'
+    gltfVersion = '2.1.0' // Only needed if targeting HTML, version should match what Mundus uses
+  }
+  repositories {
+
+    maven { url 'https://jitpack.io' }
+  }
+
   // This allows you to "Build and run using IntelliJ IDEA", an option in IDEA's Settings.
   idea {
     module {

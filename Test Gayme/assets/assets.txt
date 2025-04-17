@@ -1,3 +1,6 @@
+Models/Smoke/k.bin
+Models/Smoke/k.gltf
+Models/Smoke/smoke.part
 Models/drive.bin
 Models/drive.gltf
 Models/drivee.bin
@@ -10,3 +13,5 @@ Models/uploads_files_2792345_Koenigsegg.gltf
 libgdx.png
 lights.atlas
 lights.png
+textures/heightmap.png
+textures/sand-dunes1_albedo.png

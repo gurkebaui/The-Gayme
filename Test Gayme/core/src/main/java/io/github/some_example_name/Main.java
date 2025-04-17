@@ -5,9 +5,14 @@ package io.github.some_example_name;
 
 
 import com.badlogic.gdx.*;
+import com.badlogic.gdx.assets.AssetManager;
 import com.badlogic.gdx.graphics.*;
 import com.badlogic.gdx.graphics.g3d.Material;
 import com.badlogic.gdx.graphics.g3d.ModelInstance;
+import com.badlogic.gdx.graphics.g3d.particles.ParticleEffect;
+import com.badlogic.gdx.graphics.g3d.particles.ParticleEffectLoader;
+import com.badlogic.gdx.graphics.g3d.particles.ParticleSystem;
+import com.badlogic.gdx.graphics.g3d.particles.batches.PointSpriteParticleBatch;
 import com.badlogic.gdx.graphics.g3d.utils.AnimationController;
 import com.badlogic.gdx.graphics.g3d.utils.FirstPersonCameraController;
 import com.badlogic.gdx.graphics.g3d.utils.MeshPartBuilder;
@@ -15,6 +20,8 @@ import com.badlogic.gdx.graphics.g3d.utils.ModelBuilder;
 import com.badlogic.gdx.graphics.g3d.utils.shapebuilders.BoxShapeBuilder;
 import com.badlogic.gdx.math.Matrix4;
 import com.badlogic.gdx.math.Vector3;
+import io.github.some_example_name.Terrain.HeightMapTerrain;
+import io.github.some_example_name.Terrain.Terrain;
 import io.github.some_example_name.enums.CameraMode;
 import net.mgsx.gltf.loaders.gltf.GLTFLoader;
 import net.mgsx.gltf.scene3d.attributes.PBRColorAttribute;
@@ -40,6 +47,7 @@ public class Main extends ApplicationAdapter implements AnimationController.Anim
     private SceneSkybox skybox;
     private DirectionalLightEx light;
     private FirstPersonCameraController cameraController;
+    private ParticleEffect pe;
 
 
 
@@ -57,6 +65,12 @@ public class Main extends ApplicationAdapter implements AnimationController.Anim
     private float angleAroundPlayer = 0f;
     private float angleBehindPlayer = 0f;
 
+    // Terrainn
+    private Terrain terrain;
+    private Scene terrainScene;
+
+
+
 
     @Override
     public void create() {
@@ -67,6 +81,12 @@ public class Main extends ApplicationAdapter implements AnimationController.Anim
             // switching to full-screen mode failed
         }
 
+
+
+
+
+
+
         // create scene
         sceneAsset = new GLTFLoader().load(Gdx.files.internal("Models/drive.gltf"));
         playerScene = new Scene(sceneAsset.scene);
@@ -74,15 +94,15 @@ public class Main extends ApplicationAdapter implements AnimationController.Anim
         sceneManager.addScene(playerScene);
 
         // setup camera (The BoomBox model is very small so you may need to adapt camera settings for your scene)
-        camera = new PerspectiveCamera(60f, Gdx.graphics.getWidth(), Gdx.graphics.getHeight());
+                camera = new PerspectiveCamera(60f, Gdx.graphics.getWidth(), Gdx.graphics.getHeight());
 
-        camera.near =1;
-        camera.far = 20000;
-        sceneManager.setCamera(camera);
-        camera.position.set(0,0,4f);
+                camera.near =1;
+                camera.far = 20000;
+                sceneManager.setCamera(camera);
+                camera.position.set(0,0,4f);
 
-        Gdx.input.setCursorCatched(true);
-        Gdx.input.setInputProcessor(this);
+                Gdx.input.setCursorCatched(true);
+                Gdx.input.setInputProcessor(this);
 
 
 
@@ -116,8 +136,19 @@ public class Main extends ApplicationAdapter implements AnimationController.Anim
 
         playerScene.animationController.setAnimation("driving",-1);
 
+        createTerrain();
 
+    }
 
+    private void createTerrain() {
+        if (terrain != null) {
+            terrain.dispose();
+            sceneManager.removeScene(terrainScene);
+        }
+
+        terrain = new HeightMapTerrain(new Pixmap(Gdx.files.internal("textures/heightmap.png")), 30f);
+        terrainScene = new Scene(terrain.getModelInstance());
+        sceneManager.addScene(terrainScene);
     }
 
     @Override
@@ -143,14 +174,15 @@ public class Main extends ApplicationAdapter implements AnimationController.Anim
         processInput(deltaTime);
         updateCamera();
 
-
+        if (Gdx.input.isKeyJustPressed(Input.Keys.F1)) {
+            createTerrain();
+        }
 
 
         // render
         Gdx.gl.glClear(GL20.GL_COLOR_BUFFER_BIT | GL20.GL_DEPTH_BUFFER_BIT);
         sceneManager.update(deltaTime);
         sceneManager.render();
-        buildBoxes();
     }
 
     private void updateCamera() {
@@ -255,22 +287,7 @@ public class Main extends ApplicationAdapter implements AnimationController.Anim
         moveTranslation.set(0,0,0);
     }
 
-    private void buildBoxes() {
-        ModelBuilder modelBuilder = new ModelBuilder();
-        modelBuilder.begin();
 
-        for (int x = 0; x < 100; x+= 10) {
-            for (int z = 0; z < 100; z+= 10) {
-                Material material = new Material();
-                material.set(PBRColorAttribute.createBaseColorFactor(Color.RED));
-                MeshPartBuilder builder = modelBuilder.part(x + ", " + z, GL20.GL_TRIANGLES, VertexAttributes.Usage.Position | VertexAttributes.Usage.Normal, material);
-                BoxShapeBuilder.build(builder, x, 0, z, 1f,1f,1f);
-            }
-        }
-
-        ModelInstance model = new ModelInstance(modelBuilder.end());
-        sceneManager.addScene(new Scene(model));
-    }
 
     @Override
     public void dispose() {
