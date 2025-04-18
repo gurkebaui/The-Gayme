@@ -7,5 +7,8 @@ public class Settings {
     public static final float CAMERA_PITCH_FACTOR = 0.3f;
     public static final float CAMERA_ZOOM_LEVEL_FACTOR = 0.5f;              // Our zoom multiplier (speed)
     public static final float CAMERA_ANGLE_AROUND_PLAYER_FACTOR = 0.2f;     // Rotation around player speed
-    public static final float CAMERA_MIN_DISTANCE_FROM_PLAYER = 4;          // Min zoom distance
+    public static final float CAMERA_MIN_DISTANCE_FROM_PLAYER = 4;
+
+    public static final float PLAYER_MOVE_SPEED = 50f;
+    public static final float PLAYER_ROTATION_SPEED = 40f;// Min zoom distance
 }
