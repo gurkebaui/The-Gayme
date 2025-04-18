@@ -47,8 +47,10 @@ dependencies {
   api "org.jetbrains.kotlinx:kotlinx-coroutines-core:$kotlinxCoroutinesVersion"
   api "org.mini2Dx:universal-tween-engine:$universalTweenVersion"
   api "space.earlygrey:shapedrawer:$shapeDrawerVersion"
+  api "com.badlogicgames.gdx:gdx-bullet:$gdxVersion"
 
   if(enableGraalNative == 'true') {
     implementation "io.github.berstanio:gdx-svmhelper-annotations:$graalHelperVersion"
+    implementation "com.badlogicgames.gdx:gdx-bullet-platform:$gdxVersion:natives-desktop"
   }
 }
