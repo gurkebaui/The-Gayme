@@ -10,6 +10,7 @@ import com.badlogic.gdx.graphics.VertexAttributes;
 import com.badlogic.gdx.graphics.g3d.utils.AnimationController;
 import com.badlogic.gdx.graphics.glutils.ShapeRenderer; // Import für Debug Drawer
 import com.badlogic.gdx.math.Matrix4;
+import com.badlogic.gdx.math.Quaternion;
 import com.badlogic.gdx.math.Vector3;
 import com.badlogic.gdx.math.collision.BoundingBox;
 import io.github.some_example_name.Physiks.CharacterPhysics;
@@ -81,9 +82,12 @@ public class Main extends ApplicationAdapter implements AnimationController.Anim
 
     private final float CHARACTER_RADIUS = 0.8f;
     private final float CHARACTER_HEIGHT = 2.0f;
-    private final float CHARACTER_MASS = 7090f;
-    private final float MOVE_SPEED = 70.0f;
-    private final float JUMP_FORCE = 4500f;
+    private final float CHARACTER_MASS = 79f;
+    private final float MOVE_SPEED = 7.0f;
+    private final float JUMP_FORCE = 450.0f;
+
+
+    private final Vector3 tmpVec2 = new Vector3();
 
 
     @Override
@@ -444,39 +448,71 @@ public class Main extends ApplicationAdapter implements AnimationController.Anim
     private void handleInput() {
         if (characterPhysics == null || characterPhysics.body == null) return;
 
-        tmpVec.set(0, 0, 0);
-        Vector3 moveDirection = tmpVec;
+        // --- KORREKTUR HIER ---
+        // Erstelle einen NEUEN Vektor für die Bewegungsrichtung, initialisiert mit (0,0,0)
+        Vector3 moveDirection = new Vector3(); // Nicht tmpVec zuweisen!
+        // tmpVec kann weiterhin für Berechnungen wie das Kreuzprodukt verwendet werden
+        // --- ENDE KORREKTUR ---
 
-        if (Gdx.input.isKeyPressed(Input.Keys.W)) moveDirection.add(camera.direction.x, 0, camera.direction.z);
-        if (Gdx.input.isKeyPressed(Input.Keys.S)) moveDirection.sub(camera.direction.x, 0, camera.direction.z);
-        if (Gdx.input.isKeyPressed(Input.Keys.A)) moveDirection.add(tmpVec.set(camera.direction).crs(camera.up).nor().x, 0, tmpVec.z);
-        if (Gdx.input.isKeyPressed(Input.Keys.D)) moveDirection.sub(tmpVec.set(camera.direction).crs(camera.up).nor().x, 0, tmpVec.z);
 
-        moveDirection.nor();
+        // --- Richtungen sammeln (Basis W/S) ---
+        if (Gdx.input.isKeyPressed(Input.Keys.W)) {
+            // tmpVec holen wir uns nur für die Richtung, ändern moveDirection direkt
+            tmpVec.set(camera.direction); // Holen der Kamerarichtung
+            moveDirection.add(tmpVec.x, 0, tmpVec.z); // Addiere zur (anfangs leeren) moveDirection
+        }
+        if (Gdx.input.isKeyPressed(Input.Keys.S)) {
+            tmpVec.set(camera.direction); // Holen der Kamerarichtung
+            moveDirection.sub(tmpVec.x, 0, tmpVec.z); // Subtrahiere von moveDirection
+        }
 
+        // --- Richtungen sammeln (A/D) ---
+        if (Gdx.input.isKeyPressed(Input.Keys.A)) {
+            // tmpVec für die Berechnung des Links-Vektors verwenden
+            tmpVec.set(camera.direction).crs(camera.up).nor(); // tmpVec = Links
+            // Gdx.app.log("Input", "A pressed. Adding Left Vector: " + tmpVec);
+            // Addiere die Links-Komponenten zur bestehenden moveDirection (die schon W/S enthalten kann)
+            moveDirection.sub(tmpVec.x, 0, tmpVec.z);
+        }
+        if (Gdx.input.isKeyPressed(Input.Keys.D)) {
+            // tmpVec für die Berechnung des Links-Vektors verwenden
+            tmpVec.set(camera.direction).crs(camera.up).nor(); // tmpVec = Links
+            // Gdx.app.log("Input", "D pressed. Subtracting Left Vector: " + tmpVec);
+            // Subtrahiere die Links-Komponenten von der bestehenden moveDirection
+            moveDirection.add(tmpVec.x, 0, tmpVec.z); // Korrekt für Rechtsbewegung
+        }
+
+
+        // --- Bewegung anwenden oder stoppen ---
         if (!moveDirection.isZero()) {
-            Vector3 currentLinearVelocity = characterPhysics.body.getLinearVelocity(); // Erzeugt Garbage!
+            moveDirection.nor(); // Normalisieren der kombinierten Richtung
+
+            Vector3 currentLinearVelocity = characterPhysics.body.getLinearVelocity();
             newVelocity.set(moveDirection).scl(MOVE_SPEED);
             newVelocity.y = currentLinearVelocity.y;
             characterPhysics.body.setLinearVelocity(newVelocity);
             characterPhysics.body.activate();
-        } else {
-            Vector3 currentLinearVelocity = characterPhysics.body.getLinearVelocity(); // Erzeugt Garbage!
+            characterPhysics.body.setAngularVelocity(Vector3.Zero);
+            characterPhysics.body.setAngularVelocity(Vector3.Zero); // Verhindert Physik-Drehung
+
+
+
+        } else { // Keine Bewegungstaste
+            Vector3 currentLinearVelocity = characterPhysics.body.getLinearVelocity();
             stopHorizontalVelocity.set(0, currentLinearVelocity.y, 0);
             characterPhysics.body.setLinearVelocity(stopHorizontalVelocity);
+            characterPhysics.body.setAngularVelocity(Vector3.Zero);
         }
 
+        // --- Sprung ---
         if (Gdx.input.isKeyJustPressed(Input.Keys.SPACE)) {
-            Vector3 currentLinearVelocity = characterPhysics.body.getLinearVelocity(); // Erzeugt Garbage!
+            Vector3 currentLinearVelocity = characterPhysics.body.getLinearVelocity();
             if (Math.abs(currentLinearVelocity.y) < 0.5f) {
-                characterPhysics.jump(JUMP_FORCE); // jump() in CharacterPhysics sollte applyCentralImpulse verwenden
-                Gdx.app.log("Main", "Jump initiated with force: " + JUMP_FORCE);
-            } else {
-                Gdx.app.log("Main", "Jump blocked (in air). Current Y velocity: " + currentLinearVelocity.y);
+                characterPhysics.jump(JUMP_FORCE);
             }
         }
+        // Die Normalisierung am Ende wird nicht mehr benötigt/ist falsch platziert
     }
-
     // --- InputProcessor Methoden ---
     @Override
     public boolean keyDown(int keycode) {

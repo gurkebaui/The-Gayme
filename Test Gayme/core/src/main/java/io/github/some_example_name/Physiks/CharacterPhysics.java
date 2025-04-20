@@ -49,7 +49,10 @@ public class CharacterPhysics implements Disposable {
 
         // Wichtige Einstellungen für einen Charakter:
         // 1. Verhindern, dass er "umfällt" (nur Rotation um die Y-Achse erlauben)
-        body.setAngularFactor(new Vector3(0, 1, 0));
+        // wenn drehung wiedrer gewünscht
+         body.setAngularFactor(new Vector3(0, 1, 0));
+        //body.setAngularFactor(0f); // Sperrt Rotation um ALLE Achsen
+        //body.setAngularVelocity(Vector3.Zero); // Setze initiale Rotationsgeschwindigkeit auf Null
         // Oder komplett keine Rotation erlauben: body.setAngularFactor(0);
         // 2. Verhindern, dass der Körper "einschläft" und nicht mehr auf Kräfte reagiert
         body.setActivationState(Collision.DISABLE_DEACTIVATION);
