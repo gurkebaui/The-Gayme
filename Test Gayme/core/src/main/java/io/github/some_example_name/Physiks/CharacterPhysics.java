@@ -1,5 +1,6 @@
 package io.github.some_example_name.Physiks;
 
+import com.badlogic.gdx.Gdx;
 import com.badlogic.gdx.graphics.g3d.ModelInstance;
 import com.badlogic.gdx.math.Matrix4;
 import com.badlogic.gdx.math.Vector3;
@@ -47,13 +48,12 @@ public class CharacterPhysics implements Disposable {
         // Erstelle den RigidBody
         body = new btRigidBody(constructionInfo);
 
-        // Wichtige Einstellungen für einen Charakter:
-        // 1. Verhindern, dass er "umfällt" (nur Rotation um die Y-Achse erlauben)
-        // wenn drehung wiedrer gewünscht
-         body.setAngularFactor(new Vector3(0, 1, 0));
-        //body.setAngularFactor(0f); // Sperrt Rotation um ALLE Achsen
-        //body.setAngularVelocity(Vector3.Zero); // Setze initiale Rotationsgeschwindigkeit auf Null
-        // Oder komplett keine Rotation erlauben: body.setAngularFactor(0);
+
+        // Im CharacterPhysics Konstruktor:
+        body.setAngularFactor(0f); // Sperrt Rotation um ALLE Achsen
+        body.setAngularVelocity(Vector3.Zero);
+        Gdx.app.log("CharacterPhysics", "Set AngularFactor to 0 and AngularVelocity to Zero.");// Setze initiale Rotationsgeschwindigkeit auf Null
+
         // 2. Verhindern, dass der Körper "einschläft" und nicht mehr auf Kräfte reagiert
         body.setActivationState(Collision.DISABLE_DEACTIVATION);
 

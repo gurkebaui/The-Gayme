@@ -1,182 +1,225 @@
-package io.github.some_example_name;
+package io.github.some_example_name; // Definiert, zu welchem Paket diese Klasse gehört. Wichtig für die Organisation.
 
-import com.badlogic.gdx.*;
-import com.badlogic.gdx.graphics.*;
-import com.badlogic.gdx.graphics.g3d.Environment;
-import com.badlogic.gdx.graphics.g3d.ModelBatch;
-import com.badlogic.gdx.graphics.g3d.ModelInstance;
-import com.badlogic.gdx.graphics.g3d.attributes.ColorAttribute;
-import com.badlogic.gdx.graphics.VertexAttributes;
-import com.badlogic.gdx.graphics.g3d.utils.AnimationController;
-import com.badlogic.gdx.graphics.glutils.ShapeRenderer; // Import für Debug Drawer
-import com.badlogic.gdx.math.Matrix4;
+// --- LibGDX Core Imports ---
+// Diese Klassen sind grundlegend für fast jede LibGDX Anwendung.
+import com.badlogic.gdx.*; // Stellt grundlegende App-Funktionen bereit (Input, Graphics, Files etc.)
+import com.badlogic.gdx.graphics.*; // Klassen für Grafik (Farben, Texturen, Kamera, Pixmap etc.)
+import com.badlogic.gdx.graphics.g3d.Environment; // Enthält Informationen über die 3D-Umgebung (Licht, Schatten etc.) - Wird vom SceneManager verwendet
+import com.badlogic.gdx.graphics.g3d.ModelInstance; // Eine konkrete Instanz eines 3D-Modells in der Welt
+import com.badlogic.gdx.graphics.g3d.attributes.ColorAttribute; // Attribut für Umgebungslichtfarbe
+import com.badlogic.gdx.graphics.g3d.utils.AnimationController; // Steuert Animationen von ModelInstances
+import com.badlogic.gdx.graphics.glutils.ShapeRenderer; // Zum Zeichnen einfacher Formen (Linien, Rechtecke) - für Debug Drawing
+import com.badlogic.gdx.math.Matrix4; // Eine 4x4 Matrix, oft für Transformationen (Position, Rotation, Skalierung) verwendet
 import com.badlogic.gdx.math.Quaternion;
-import com.badlogic.gdx.math.Vector3;
-import com.badlogic.gdx.math.collision.BoundingBox;
-import io.github.some_example_name.Physiks.CharacterPhysics;
-import io.github.some_example_name.Physiks.PhysicsSystem;
-import io.github.some_example_name.Physiks.TerrainPhysics;
-import io.github.some_example_name.Player.Player;
-import io.github.some_example_name.Player.PlayerCameraController;
-import io.github.some_example_name.Terrain.HeightMapTerrain;
-import io.github.some_example_name.Terrain.Terrain;
-import io.github.some_example_name.Terrain.HeightField;
-import io.github.some_example_name.enums.CameraMode; // Import für CameraMode Enum
-import net.mgsx.gltf.loaders.gltf.GLTFLoader;
-import net.mgsx.gltf.scene3d.attributes.PBRCubemapAttribute;
-import net.mgsx.gltf.scene3d.attributes.PBRTextureAttribute;
-import net.mgsx.gltf.scene3d.lights.DirectionalLightEx;
-import net.mgsx.gltf.scene3d.scene.Scene;
-import net.mgsx.gltf.scene3d.scene.SceneAsset;
-import net.mgsx.gltf.scene3d.scene.SceneManager;
-import net.mgsx.gltf.scene3d.scene.SceneSkybox;
-import net.mgsx.gltf.scene3d.utils.IBLBuilder;
-import com.badlogic.gdx.physics.bullet.Bullet;
-import com.badlogic.gdx.physics.bullet.linearmath.btIDebugDraw; // Import für Debug Drawer
+import com.badlogic.gdx.math.Vector3; // Ein Vektor mit 3 Komponenten (x, y, z) für Positionen, Richtungen, etc.
+import com.badlogic.gdx.math.collision.BoundingBox; // Definiert einen achsenparallelen Quader (nützlich für Kollisionsabschätzung etc.)
+import com.badlogic.gdx.utils.Disposable; // Interface für Klassen, die Ressourcen freigeben müssen (z.B. Texturen, Meshes)
 
+// --- Physik (Bullet Wrapper) Imports ---
+// Klassen spezifisch für die Bullet Physik-Engine Anbindung in LibGDX
+import com.badlogic.gdx.physics.bullet.Bullet; // Hauptklasse zum Initialisieren der Bullet-Bibliothek
+import com.badlogic.gdx.physics.bullet.linearmath.btIDebugDraw; // Interface für das Debug Drawing der Physikwelt
+
+// --- GLTF Scene Management Imports ---
+// Klassen für das Laden und Managen von GLTF 3D-Szenen (ein modernes 3D-Format)
+import net.mgsx.gltf.loaders.gltf.GLTFLoader; // Lädt GLTF-Dateien
+import net.mgsx.gltf.scene3d.attributes.PBRCubemapAttribute; // Spezielle Attribute für Physically Based Rendering (PBR) mit Cubemaps
+import net.mgsx.gltf.scene3d.attributes.PBRTextureAttribute;  // PBR-Attribute mit Texturen
+import net.mgsx.gltf.scene3d.lights.DirectionalLightEx; // Eine erweiterte Version eines gerichteten Lichts (für PBR)
+import net.mgsx.gltf.scene3d.scene.Scene; // Repräsentiert eine geladene Szene (kann Modelle, Lichter etc. enthalten)
+import net.mgsx.gltf.scene3d.scene.SceneAsset; // Das Ergebnis des Ladens einer GLTF-Datei (enthält die Szene und andere Assets)
+import net.mgsx.gltf.scene3d.scene.SceneManager; // Verwaltet das Rendern und Updaten von mehreren Szenen, Kamera, Umgebung etc.
+import net.mgsx.gltf.scene3d.scene.SceneSkybox; // Zeichnet eine Skybox (Hintergrundhimmel) basierend auf einer Cubemap
+import net.mgsx.gltf.scene3d.utils.IBLBuilder; // Hilfsklasse zum Erstellen von Image Based Lighting (IBL) Texturen (Cubemaps)
+
+// --- Deine Projekt-spezifischen Imports ---
+// Klassen, die du selbst erstellt hast oder die spezifisch für dein Spiel sind.
+import io.github.some_example_name.Physiks.CharacterPhysics; // Deine Klasse für die Spieler-Physik
+import io.github.some_example_name.Physiks.PhysicsSystem;   // Deine Klasse für das Physik-System (Welt, Konfiguration)
+import io.github.some_example_name.Physiks.TerrainPhysics;  // Deine Klasse für die Terrain-Physik
+import io.github.some_example_name.Player.Player; // Deine Klasse, die Spieler-Zustand etc. hält
+import io.github.some_example_name.Player.PlayerCameraController; // Deine Klasse für die Kamera-Steuerung
+import io.github.some_example_name.Terrain.HeightMapTerrain; // Deine Klasse für das visuelle Terrain
+import io.github.some_example_name.Terrain.Terrain; // Basis-Interface/Klasse für dein Terrain (optional, je nach Design)
+import io.github.some_example_name.Terrain.HeightField; // Deine Klasse, die die Heightmap-Daten für die Physik aufbereitet
+import io.github.some_example_name.enums.CameraMode; // Deine Enum für verschiedene Kameramodi
+// *** NEUE IMPORTS für die ausgelagerten Klassen ***
+import io.github.some_example_name.Player.PlayerInputHandler; // Der neue Handler für Spielereingaben
+import io.github.some_example_name.Terrain.TerrainManager; // Der neue Manager für das Terrain
+
+/**
+ * Die Hauptklasse deines Spiels. Sie initialisiert alle Systeme,
+ * verwaltet den Haupt-Game-Loop (rendern, updaten) und kümmert sich um das Aufräumen.
+ * <p>
+ * Erweitert ApplicationAdapter: Eine Basisklasse von LibGDX, die die wichtigsten Methoden
+ * (create, render, dispose, resize etc.) bereitstellt.
+ * <p>
+ * Implementiert AnimationListener: (Optional) Falls du auf Animations-Events reagieren willst.
+ * Implementiert InputProcessor: Damit die Klasse direkt auf Tastatur- und Mauseingaben reagieren kann.
+ */
 public class Main extends ApplicationAdapter implements AnimationController.AnimationListener, InputProcessor {
 
     // --- Rendering & Scene Manager ---
-    private SceneManager sceneManager;
-    private SceneAsset sceneAsset;
-    private Scene playerScene;
-    private Scene terrainScene;
-    private PerspectiveCamera camera;
-    private Cubemap diffuseCubemap;
-    private Cubemap environmentCubemap;
-    private Cubemap specularCubemap;
-    private Texture brdfLUT;
-    private SceneSkybox skybox;
-    private DirectionalLightEx light;
+    // Diese Objekte sind für das Anzeigen der 3D-Welt zuständig.
+    private SceneManager sceneManager;      // Rendert die GLTF-Szenen, Skybox, etc.
+    private SceneAsset sceneAsset;          // Hält die geladenen Daten der Spieler-GLTF-Datei
+    private Scene playerScene;              // Die spezifische Szene des Spielers aus der GLTF-Datei
+    // terrainScene wird jetzt vom TerrainManager verwaltet
+    private PerspectiveCamera camera;       // Die virtuelle Kamera, durch die wir die Welt sehen
+    private Cubemap diffuseCubemap;         // Texturen für Image Based Lighting (diffuse Reflexionen)
+    private Cubemap environmentCubemap;     // Texturen für Image Based Lighting (Umgebungsreflexionen)
+    private Cubemap specularCubemap;        // Texturen für Image Based Lighting (spiegelnde Reflexionen)
+    private Texture brdfLUT;                // Eine Lookup-Textur für PBR-Berechnungen
+    private SceneSkybox skybox;             // Das Objekt, das die Skybox zeichnet
+    private DirectionalLightEx light;       // Das Haupt-Sonnenlicht in der Szene
 
     // --- Spiel-Logik ---
-    private Player player;
+    // Objekte, die den Zustand und das Verhalten von Spielelementen steuern.
+    private Player player;                     // Hält Spielerdaten (z.B. aktueller Zustand, Winkel)
     private PlayerCameraController playerCameraController;
-    private Terrain terrain; // Visuelles Terrain-Objekt (HeightMapTerrain)
+    private final Vector3 tmpVec2 = new Vector3();
+    private final Quaternion tmpQuat = new Quaternion();// Steuert die Bewegung und Ausrichtung der Kamera
+    private final Vector3 tmpVec = new Vector3(); // Für die berechnete Rotation
+    private final Matrix4 tmpMat = new Matrix4(); // Zum Erstellen der Rotationsmatrix
 
     // --- Physik ---
-    private PhysicsSystem physicsSystem;
-    private TerrainPhysics terrainPhysics;
-    private CharacterPhysics characterPhysics;
-    private HeightField physicsHeightField; // HeightField für die Physik
+    // Objekte für die Physiksimulation mit Bullet.
+    private PhysicsSystem physicsSystem;        // Verwaltet die Physik-Welt (Schwerkraft, Kollisionserkennung etc.)
+    // terrainPhysics wird jetzt vom TerrainManager verwaltet
+    private CharacterPhysics characterPhysics;   // Verwaltet den Physik-Körper des Spielers
 
-    // --- Physik Debug Drawing --- NEU
-    private btIDebugDraw debugDrawer;
-    private ShapeRenderer shapeRenderer;
-    private boolean drawDebug = true; // Standardmäßig Debug zeichnen
+    // --- NEUE Handler-Klassen ---
+    // Ausgelagerte Logik für bessere Organisation.
+    private PlayerInputHandler playerInputHandler; // Verarbeitet jetzt WASD, Sprung etc.
+    private TerrainManager terrainManager;     // Verwaltet jetzt Erstellung und Lebenszyklus des Terrains
+
+    // --- Physik Debug Drawing ---
+    // Hilfsmittel zur Visualisierung der unsichtbaren Physik-Formen.
+    private btIDebugDraw debugDrawer;           // Das Bullet-Interface zum Debug-Zeichnen
+    private ShapeRenderer shapeRenderer;        // LibGDX-Klasse zum Zeichnen der Debug-Linien
+    private boolean drawDebug = true;           // Schalter, um Debug-Zeichnen an/aus zu machen (z.B. mit F3)
 
     // --- Hilfsvariablen ---
-    private final Vector3 tmpVec = new Vector3();
-    private final Vector3 currentVelocity = new Vector3(); // Wird jetzt von getLinearVelocity() zurückgegeben
-    private final Vector3 newVelocity = new Vector3();
-    private final Vector3 stopHorizontalVelocity = new Vector3();
-    private final Vector3 playerPhysicsPosition = new Vector3();
+    // Temporäre Objekte, um im render-Loop nicht ständig neue Objekte erstellen zu müssen (vermeidet Garbage Collection).              // Allgemeiner temporärer Vektor
+    private final Vector3 playerPhysicsPosition = new Vector3(); // Zum Abfragen der Spielerposition aus der Physik
 
     // --- Konstanten (ANPASSEN!) ---
-    private final String CHARACTER_MODEL_PATH = "Models/drive.gltf";
-    private final String HEIGHTMAP_PATH = "textures/heightmap.png";
-    private final float TERRAIN_MAX_HEIGHT = 30f;
-    // Dimensionen für das physicsHeightField (müssen zu HeightMapTerrain passen!)
-    private final float VISUAL_TERRAIN_WIDTH = 100f;  // << ANPASSEN!
-    private final float VISUAL_TERRAIN_DEPTH = 100f;  // << ANPASSEN!
+    // Konfigurationswerte für das Spiel. Gut, sie hier zentral zu haben.
+    private final String CHARACTER_MODEL_PATH = "Models/bean.gltf";  // Pfad zur GLTF-Datei des Spielers
+    private final String HEIGHTMAP_PATH = "textures/heightmap.png"; // Pfad zur Höhentextur für das Terrain
+    private final float TERRAIN_MAX_HEIGHT = 30f;                   // Maximale Höhe, die das Terrain erreichen kann
+    // Dimensionen des *visuellen* Terrains (wichtig für die Physik-Anpassung!)
+    private final float VISUAL_TERRAIN_WIDTH = 100f;  // << PASSE DIES AN die tatsächliche Breite deines Terrains an!
+    private final float VISUAL_TERRAIN_DEPTH = 100f;  // << PASSE DIES AN die tatsächliche Tiefe deines Terrains an!
 
-    private final float CHARACTER_RADIUS = 0.8f;
-    private final float CHARACTER_HEIGHT = 2.0f;
-    private final float CHARACTER_MASS = 79f;
-    private final float MOVE_SPEED = 7.0f;
-    private final float JUMP_FORCE = 450.0f;
+    // Charakter-Physik Werte
+    private final float CHARACTER_RADIUS = 0.8f;    // Radius der Kollisionskapsel
+    private final float CHARACTER_HEIGHT = 2.0f;    // Höhe des zylindrischen Teils der Kapsel
+    private final float CHARACTER_MASS = 70f;       // Masse des Charakters in kg
+    // Steuerungs-Werte
+    private final float MOVE_SPEED = 7.0f;          // Bewegungsgeschwindigkeit
+    private final float JUMP_FORCE = 450f;          // Kraft des Sprungimpulses
 
 
-    private final Vector3 tmpVec2 = new Vector3();
-
-
+    /**
+     * Wird EINMAL beim Start der Anwendung aufgerufen.
+     * Hier werden alle Ressourcen geladen und Objekte initialisiert.
+     */
     @Override
     public void create() {
-        // --- Initialisierung ---
-        Bullet.init();
-        Gdx.app.log("Main", "Bullet initialized.");
+        // --- Grundlegende Initialisierungen ---
+        Bullet.init(); // SEHR WICHTIG: Muss vor jeder Bullet-Nutzung aufgerufen werden!
+        Gdx.app.log("Main", "Bullet initialized."); // Log-Ausgabe zur Kontrolle
 
-        physicsSystem = new PhysicsSystem();
+        physicsSystem = new PhysicsSystem(); // Erstellt die Physik-Welt, Schwerkraft etc.
         Gdx.app.log("Main", "Physics system created.");
 
-        // --- Initialisiere Debug Drawer --- NEU
+        // --- Initialisiere Debug Drawer ---
+        // Erstellt die notwendigen Objekte, um die Physik-Formen zu zeichnen.
         shapeRenderer = new ShapeRenderer();
-        debugDrawer = new btIDebugDraw() {
+        debugDrawer = new btIDebugDraw() { // Anonyme Implementierung des Debug-Interfaces
             @Override
             public void drawLine(Vector3 from, Vector3 to, Vector3 color) {
-                shapeRenderer.setColor(color.x, color.y, color.z, 1);
-                shapeRenderer.line(from, to);
+                shapeRenderer.setColor(color.x, color.y, color.z, 1); // Farbe setzen
+                shapeRenderer.line(from, to); // Linie zeichnen
             }
 
             @Override
             public void drawContactPoint(Vector3 PointOnB, Vector3 normalOnB, float distance, int lifeTime, Vector3 color) {
-                shapeRenderer.setColor(color.x, color.y, color.z, 1);
-                shapeRenderer.point(PointOnB.x, PointOnB.y, PointOnB.z); // Etwas größerer Punkt
+                shapeRenderer.setColor(color.x, color.y, color.z, 1); // Farbe setzen
+                shapeRenderer.point(PointOnB.x, PointOnB.y, PointOnB.z); // Kontaktpunkt zeichnen
             }
 
             @Override
-            public void reportErrorWarning(String warningString) {
-                Gdx.app.error("BulletDebugDrawer", warningString);
-            }
+            public void reportErrorWarning(String warningString) { Gdx.app.error("BulletDebugDrawer", warningString); } // Fehler loggen
 
             @Override
-            public void draw3dText(Vector3 location, String textString) { } // Leer
+            public void draw3dText(Vector3 location, String textString) {} // Text nicht benötigt
 
-            private int debugMode = DebugDrawModes.DBG_DrawWireframe | DebugDrawModes.DBG_DrawContactPoints;
+            private int debugMode = DebugDrawModes.DBG_DrawWireframe | DebugDrawModes.DBG_DrawContactPoints; // Was gezeichnet wird
 
             @Override
-            public void setDebugMode(int debugMode) { this.debugMode = debugMode; }
+            public void setDebugMode(int debugMode) { this.debugMode = debugMode; } // Modus setzen
             @Override
-            public int getDebugMode() { return debugMode; }
+            public int getDebugMode() { return debugMode; } // Modus abfragen
         };
-        physicsSystem.dynamicsWorld.setDebugDrawer(debugDrawer);
+        physicsSystem.dynamicsWorld.setDebugDrawer(debugDrawer); // Den Drawer der Physik-Welt zuweisen
         Gdx.app.log("Main", "Bullet Debug Drawer initialized and set.");
-        // --- Ende Initialisierung Debug Drawer ---
 
-        // Vollbildmodus (optional)
+        // --- Fenster / Grafik Setup ---
+        // Optional: Versucht Vollbild zu starten
         Graphics.Monitor currMonitor = Gdx.graphics.getMonitor();
         Graphics.DisplayMode displayMode = Gdx.graphics.getDisplayMode(currMonitor);
         if (!Gdx.graphics.setFullscreenMode(displayMode)) {
             Gdx.app.error("Graphics", "Fullscreen mode failed, using windowed.");
-            Gdx.graphics.setWindowedMode(1280, 720);
+            Gdx.graphics.setWindowedMode(1280, 720); // Fallback
         }
 
-        // SceneManager erstellen
-        sceneManager = new SceneManager();
+        // --- SceneManager und Kamera ---
+        sceneManager = new SceneManager(); // Erstellt den Manager für die 3D-Szenen
+        camera = new PerspectiveCamera(60f, Gdx.graphics.getWidth(), Gdx.graphics.getHeight()); // Erstellt die Kamera
+        camera.near = 0.1f; // Nahe Clipping-Distanz (Objekte näher als das werden nicht gezeichnet)
+        camera.far = 1000f; // Ferne Clipping-Distanz (Objekte weiter weg werden nicht gezeichnet)
+        sceneManager.setCamera(camera); // Weist die Kamera dem SceneManager zu
+        camera.position.set(0, 5, 10f); // Setzt eine initiale Kameraposition (wird später überschrieben)
 
-        // Kamera Setup
-        camera = new PerspectiveCamera(60f, Gdx.graphics.getWidth(), Gdx.graphics.getHeight());
-        camera.near = 0.1f;
-        camera.far = 1000f;
-        sceneManager.setCamera(camera);
-        camera.position.set(0, 5, 10f);
+        // --- Input Handling ---
+        Gdx.input.setInputProcessor(this); // Setzt DIESE Klasse als Haupt-Input-Handler (für keyDown, scrolled etc.)
+        Gdx.input.setCursorCatched(true); // Versteckt den Mauszeiger und fängt ihn im Fenster ein (wichtig für Kamerasteuerung)
 
-        // Input Processor setzen
-        Gdx.input.setInputProcessor(this);
-        Gdx.input.setCursorCatched(true);
+        // --- Licht, Umgebung (IBL), Skybox ---
+        // Erstellt Lichtquellen und Reflexions-Texturen für realistisches Rendering
+        light = new DirectionalLightEx(); // Hauptlicht (Sonne)
+        light.direction.set(1, -3, 1).nor(); // Richtung des Lichts
+        light.color.set(Color.WHITE);       // Farbe des Lichts
+        sceneManager.environment.add(light); // Licht zur Umgebung hinzufügen
 
-        // Licht Setup (IBL & Directional)
-        light = new DirectionalLightEx();
-        light.direction.set(1, -3, 1).nor();
-        light.color.set(Color.WHITE);
-        sceneManager.environment.add(light);
-        IBLBuilder iblBuilder = IBLBuilder.createOutdoor(light);
-        environmentCubemap = iblBuilder.buildEnvMap(1024);
-        diffuseCubemap = iblBuilder.buildIrradianceMap(256);
-        specularCubemap = iblBuilder.buildRadianceMap(10);
-        iblBuilder.dispose();
+        // IBL (Image Based Lighting) Setup - Erzeugt Cubemaps für Umgebungsreflexionen
+        IBLBuilder iblBuilder = IBLBuilder.createOutdoor(light); // Erstellt einen Builder basierend auf dem Licht
+        environmentCubemap = iblBuilder.buildEnvMap(1024);      // Cubemap für Spiegelungen
+        diffuseCubemap = iblBuilder.buildIrradianceMap(256);   // Cubemap für diffuse Beleuchtung
+        specularCubemap = iblBuilder.buildRadianceMap(10);      // Cubemap für Glanzlichter
+        iblBuilder.dispose(); // Builder wird nicht mehr gebraucht
+
+        // BRDF Lookup Texture - Eine Hilfstextur für PBR
         brdfLUT = new Texture(Gdx.files.classpath("net/mgsx/gltf/shaders/brdfLUT.png"));
-        sceneManager.setAmbientLight(1f);
+
+        // Fügt die IBL-Texturen zur Umgebung des SceneManagers hinzu
+        sceneManager.setAmbientLight(1f); // Generelles Umgebungslicht
         sceneManager.environment.set(new PBRTextureAttribute(PBRTextureAttribute.BRDFLUTTexture, brdfLUT));
         sceneManager.environment.set(PBRCubemapAttribute.createSpecularEnv(specularCubemap));
         sceneManager.environment.set(PBRCubemapAttribute.createDiffuseEnv(diffuseCubemap));
-        skybox = new SceneSkybox(environmentCubemap);
+
+        // Skybox Setup - Zeichnet den Himmel im Hintergrund
+        skybox = new SceneSkybox(environmentCubemap); // Verwendet die Spiegelungs-Cubemap
         sceneManager.setSkyBox(skybox);
 
-        // --- Spieler laden ---
-        sceneAsset = new GLTFLoader().load(Gdx.files.internal(CHARACTER_MODEL_PATH));
-        playerScene = new Scene(sceneAsset.scene);
-        sceneManager.addScene(playerScene);
+        // --- Spieler-Modell laden ---
+        // Lädt die GLTF-Datei und erstellt eine Szene daraus.
+        sceneAsset = new GLTFLoader().load(Gdx.files.internal(CHARACTER_MODEL_PATH)); // Lädt die Datei
+        playerScene = new Scene(sceneAsset.scene); // Erstellt eine renderbare Szene aus dem geladenen Asset
+        sceneManager.addScene(playerScene); // Fügt die Spieler-Szene zum SceneManager hinzu
+        // Optional: Startet die erste Animation des Modells im Loop (-1 = unendlich)
         if (playerScene.modelInstance.animations.size > 0) {
             playerScene.animationController.setAnimation(playerScene.modelInstance.animations.first().id, -1);
             Gdx.app.log("Main", "Started player animation: " + playerScene.modelInstance.animations.first().id);
@@ -184,420 +227,313 @@ public class Main extends ApplicationAdapter implements AnimationController.Anim
             Gdx.app.log("Main", "Player model has no animations.");
         }
 
-        // --- Handler Instanzen erstellen ---
-        player = new Player(playerScene);
-        playerCameraController = new PlayerCameraController(camera);
+        // --- Handler-Instanzen erstellen (Spieler-spezifisch) ---
+        // Erstellt die Objekte, die die Spielerlogik und Kamerasteuerung kapseln.
+        player = new Player(playerScene); // Übergibt die Szene an die Player-Logik
+        playerCameraController = new PlayerCameraController(camera); // Übergibt die Kamera an den Controller
 
-        // --- Terrain erstellen (Visuell & Physik) ---
-        createTerrain(); // Stellt sicher, dass beide erstellt werden
+        // --- TerrainManager erstellen und initiales Terrain bauen --- NEU
+        // Der TerrainManager kümmert sich jetzt um alles, was mit dem Terrain zu tun hat.
+        terrainManager = new TerrainManager(sceneManager, physicsSystem,
+                HEIGHTMAP_PATH, TERRAIN_MAX_HEIGHT,
+                VISUAL_TERRAIN_WIDTH, VISUAL_TERRAIN_DEPTH); // Übergabe der Abhängigkeiten und Konfiguration
+        // Erstellt das erste Terrain beim Start
+        if (!terrainManager.createOrReplaceTerrain()) {
+            // Wichtige Fehlerbehandlung: Was tun, wenn das Terrain nicht erstellt werden kann?
+            Gdx.app.error("Main", "INITIAL TERRAIN CREATION FAILED! Check paths and configurations.");
+            // Ggf. Standard-Boden erstellen oder Spiel beenden
+            Gdx.app.exit(); // Beendet die Anwendung
+            return; // Verhindert weitere Ausführung von create()
+        }
 
         // --- Charakter Physik erstellen ---
+        // Erstellt den Physik-Körper für den Spieler. Muss NACH TerrainManager erfolgen,
+        // damit wir die Terrainhöhe für die Startposition abfragen können.
         if (playerScene.modelInstance != null) {
-            float startHeight = CHARACTER_HEIGHT * 1.5f; // Default, falls Terrain fehlt
-            Vector3 basePosition = new Vector3(); // Startpunkt (X,Y,Z) des Terrains (Vertex 0,0)
+            float startHeight = CHARACTER_HEIGHT * 1.5f; // Standardhöhe über der Basis
+            Vector3 basePosition = new Vector3(); // Startpunkt (X,Y,Z) des Terrains am Vertex (0,0)
 
-            if (physicsHeightField != null) {
-                physicsHeightField.getPositionAt(basePosition, 0, 0);
-                startHeight = basePosition.y + CHARACTER_HEIGHT * 1.5f;
+            // Frage die Höhe vom TerrainManager ab (der hält das physicsHeightField)
+            HeightField currentPhysicsHF = terrainManager.getPhysicsHeightField(); // Getter verwenden
+            if (currentPhysicsHF != null) {
+                currentPhysicsHF.getPositionAt(basePosition, 0, 0); // Weltposition von Vertex (0,0)
+                startHeight = basePosition.y + CHARACTER_HEIGHT * 1.5f; // Höhe über diesem Punkt + Puffer
                 Gdx.app.log("Main", "Terrain height at vertex (0,0) from HeightField: " + basePosition.y);
             } else {
-                startHeight += TERRAIN_MAX_HEIGHT; // Addiere max Höhe, wenn kein Heightfield da
-                //Gdx.app.warn("Main", "physicsHeightField is null, using fallback start height.");
+                // Fallback, falls kein Terrain da ist (sollte wegen Fehlerbehandlung oben nicht passieren)
+                startHeight += TERRAIN_MAX_HEIGHT;
+                Gdx.app.log("Main", "Could not get physicsHeightField from TerrainManager, using fallback start height.");
                 basePosition.set(0, 0, 0); // Annahme: Start bei Weltursprung
             }
 
-            // Offsets für die Startposition definieren
+            // Definiere die gewünschten Offsets für die Startposition
             float offsetX = 10.0f; // Beispiel: Nach rechts
             float offsetZ = 15.0f; // Beispiel: Nach vorne
 
-            // Finale Startposition berechnen
+            // Berechne die finale Startposition
             Vector3 startPos = new Vector3(
-                    basePosition.x + offsetX,
-                    startHeight, // Höhe über Vertex (0,0) + Puffer
-                    basePosition.z + offsetZ
+                    basePosition.x + offsetX, // Start X + Offset X
+                    startHeight,              // Berechnete Starthöhe
+                    basePosition.z + offsetZ  // Start Z + Offset Z
             );
 
+            // Erstelle das CharacterPhysics Objekt mit der berechneten Startposition
             characterPhysics = new CharacterPhysics(
-                    physicsSystem,
-                    playerScene.modelInstance,
-                    CHARACTER_RADIUS,
-                    CHARACTER_HEIGHT,
-                    CHARACTER_MASS,
-                    startPos
+                    physicsSystem,             // Das Physik-System
+                    playerScene.modelInstance, // Das visuelle Modell des Spielers
+                    CHARACTER_RADIUS, CHARACTER_HEIGHT, CHARACTER_MASS, // Konfiguration
+                    startPos                   // Die berechnete Startposition
             );
             Gdx.app.log("Main", "Character physics created at (modified): " + startPos);
-        } else {
-            Gdx.app.error("Main", "playerScene.modelInstance is NULL. Cannot create CharacterPhysics!");
-        }
 
-        // Initiale Kameraposition setzen
-        if (characterPhysics != null) {
-            characterPhysics.updateGraphicsTransform();
-            playerPhysicsPosition.set(characterPhysics.modelInstance.transform.getTranslation(tmpVec));
-            playerCameraController.update(playerPhysicsPosition, player.getAngleBehindPlayer(), 0);
+            // --- PlayerInputHandler erstellen --- NEU
+            // Muss NACH characterPhysics erstellt werden, da er davon abhängt.
+            playerInputHandler = new PlayerInputHandler(characterPhysics, camera, MOVE_SPEED, JUMP_FORCE);
+            Gdx.app.log("Main", "PlayerInputHandler created.");
+
+            // --- Initiale Kameraposition ---
+            // Setzt die Kamera einmalig auf die Startposition des Spielers.
+            characterPhysics.updateGraphicsTransform(); // Stellt sicher, dass die Grafik-Transform aktuell ist
+            playerPhysicsPosition.set(characterPhysics.modelInstance.transform.getTranslation(tmpVec)); // Hole Position
+            playerCameraController.update(playerPhysicsPosition, player.getAngleBehindPlayer(), 0); // Kamera updaten
             Gdx.app.log("Main", "Initial camera update set.");
+
+        } else {
+            // Sollte nicht passieren, wenn GLTF-Laden funktioniert hat
+            Gdx.app.error("Main", "playerScene.modelInstance is NULL. Cannot create CharacterPhysics or PlayerInputHandler!");
         }
-    }
-
-    // In Main.java
-
-    private void createTerrain() {
-        Gdx.app.log("Main", "Creating terrain...");
-        // --- Altes Terrain entfernen (Physik, dann Visuell) ---
-        if (terrainPhysics != null) {
-            // Wichtig: Erst aus der Welt entfernen, bevor disposed wird, um Fehler zu vermeiden
-            if (physicsSystem != null && physicsSystem.dynamicsWorld != null && terrainPhysics.body != null) {
-                physicsSystem.dynamicsWorld.removeRigidBody(terrainPhysics.body);
-                Gdx.app.log("Main", "Removed old terrain body from physics world.");
-            }
-            terrainPhysics.dispose();
-            terrainPhysics = null;
-            Gdx.app.log("Main", "Disposed old terrain physics.");
-        }
-        if (physicsHeightField != null) {
-            physicsHeightField.dispose();
-            physicsHeightField = null;
-            Gdx.app.log("Main", "Disposed old physics HeightField object.");
-        }
-        if (terrainScene != null) {
-            // Sicherstellen, dass das ModelInstance auch aus dem SceneManager entfernt wird
-            sceneManager.removeScene(terrainScene); // SceneManager sollte sich um die Instanz kümmern
-            terrainScene = null; // Referenz löschen
-            Gdx.app.log("Main", "Removed old terrain scene from SceneManager.");
-
-        }
-        if (terrain != null) {
-            // Das Terrain-Objekt selbst (und sein Mesh/Material) disposen
-            terrain.dispose();
-            terrain = null;
-            Gdx.app.log("Main", "Disposed old visual terrain object.");
-        }
-
-        // --- Neues Visuelles Terrain ---
-        Pixmap visualPixmap = null;
-        try {
-            visualPixmap = new Pixmap(Gdx.files.internal(HEIGHTMAP_PATH));
-            Gdx.app.log("Main", "Loaded heightmap Pixmap for visual terrain.");
-
-            // Erstelle das visuelle Terrain.
-            // ANNAHME: HeightMapTerrain disposed die Pixmap intern!
-            terrain = new HeightMapTerrain(visualPixmap, TERRAIN_MAX_HEIGHT);
-
-            // Füge die ModelInstance des visuellen Terrains zur Szene hinzu
-            terrainScene = new Scene(terrain.getModelInstance());
-            sceneManager.addScene(terrainScene);
-            Gdx.app.log("Main", "Created visual terrain (HeightMapTerrain) and added to SceneManager.");
-
-        } catch (Exception e) {
-            Gdx.app.error("Main", "Error creating visual terrain", e);
-            // Sicherstellen, dass die Pixmap freigegeben wird, falls nicht von HeightMapTerrain getan
-            if (visualPixmap != null && !visualPixmap.isDisposed()) {
-                visualPixmap.dispose();
-                Gdx.app.error("Main", "Disposed visualPixmap after visual terrain creation failed.");
-            }
-            return; // Nicht weitermachen ohne visuelles Terrain
-        }
-        // visualPixmap sollte jetzt disposed sein (entweder durch HeightMapTerrain oder im catch-Block)
-
-        // --- Neues Physikalisches Terrain ---
-        Pixmap physicsPixmap = null;
-        try {
-            // 1. Pixmap für PHYSIKALISCHES Terrain ERNEUT laden
-            physicsPixmap = new Pixmap(Gdx.files.internal(HEIGHTMAP_PATH));
-            Gdx.app.log("Main", "Loaded heightmap Pixmap AGAIN for physics terrain.");
-
-            // 2. HeightField für die Physik erstellen (verwendet die NEUE Pixmap)
-            //    Dieses Objekt hält die Höhendaten und berechnet Vertex-Positionen.
-            physicsHeightField = new HeightField(
-                    true, // isStatic (für das interne Mesh, nicht relevant für die Physik-Daten)
-                    physicsPixmap, // NEUE Pixmap übergeben
-                    true, // smooth (beeinflusst Normalen im HeightField, nicht die Physik-Shape direkt)
-                    VertexAttributes.Usage.Position | VertexAttributes.Usage.Normal | VertexAttributes.Usage.TextureCoordinates
-            );
-            Gdx.app.log("Main", "Created physics HeightField instance.");
-
-            // 3. >>> ANPASSUNG HIER <<<
-            // Konfiguriere die Dimensionen und Position des physicsHeightField,
-            // damit es EXAKT dem visuellen Terrain entspricht.
-            // Finde die tatsächliche Größe und Position deines `HeightMapTerrain`-Meshes heraus!
-            // Beispielwerte (DU MUSST DIESE ANPASSEN!):
-            final float actualVisualWidth = 1200.0f;  // Z.B. Breite von -50 bis +50
-            final float actualVisualDepth = 1200.0f;  // Z.B. Tiefe von -50 bis +50
-            final float visualBaseY = 13.0f;      // Y-Position der Basis des visuellen Terrains
-
-            // Setze die Eckpunkte des physicsHeightField entsprechend.
-            //Wenn dein visuelles Terrain bei (0,0,0) beginnt und nach +X/+Z geht:
-             physicsHeightField.corner00.set(400,               visualBaseY, 400);
-             physicsHeightField.corner10.set(actualVisualWidth, visualBaseY, 400);
-             physicsHeightField.corner01.set(400,               visualBaseY, actualVisualDepth);
-             physicsHeightField.corner11.set(actualVisualDepth, visualBaseY, actualVisualDepth);
-
-            // Wenn dein visuelles Terrain um (0, visualBaseY, 0) zentriert ist:
-            //physicsHeightField.corner00.set(-actualVisualWidth / 2f, visualBaseY, -actualVisualDepth / 2f);
-            //physicsHeightField.corner10.set( actualVisualWidth / 2f, visualBaseY, -actualVisualDepth / 2f);
-            //physicsHeightField.corner01.set(-actualVisualWidth / 2f, visualBaseY,  actualVisualDepth / 2f);
-            //physicsHeightField.corner11.set( actualVisualWidth / 2f, visualBaseY,  actualVisualDepth / 2f);
-
-            // Setze die Höhenskalierung (Magnitude)
-            physicsHeightField.magnitude.set(0, TERRAIN_MAX_HEIGHT, 0);
-
-            // Berechne die internen Vertex-Positionen neu basierend auf den Ecken/Magnitude
-            physicsHeightField.update();
-            Gdx.app.log("Main", "Configured physics HeightField dimensions to match visual (Assumed W:" + actualVisualWidth + ", D:" + actualVisualDepth + ")");
-            Gdx.app.log("Main", "Physics HeightField corner00 set to: " + physicsHeightField.corner00);
+    } // Ende create()
 
 
-            // 4. TerrainPhysics erstellen (verwendet das konfigurierte physicsHeightField)
-            //    TerrainPhysics liest die konfigurierten Daten (corners, magnitude, data)
-            //    und erstellt daraus das btHeightfieldTerrainShape mit korrekter Skalierung/Position.
-            terrainPhysics = new TerrainPhysics(physicsSystem, physicsHeightField);
-            Gdx.app.log("Main", "Created TerrainPhysics using configured HeightField.");
-
-        } catch (Exception e) {
-            Gdx.app.error("Main", "Error creating physics terrain", e);
-            // Aufräumen im Fehlerfall
-            if (physicsHeightField != null) physicsHeightField.dispose();
-            physicsHeightField = null;
-            // terrainPhysics wurde nicht erstellt oder muss disposed werden, falls Fehler nach Erstellung auftrat
-            if (terrainPhysics != null) terrainPhysics.dispose();
-            terrainPhysics = null;
-        } finally {
-            // 5. Die zweite Pixmap (für Physik) freigeben, da sie jetzt im HeightField verarbeitet ist
-            if (physicsPixmap != null && !physicsPixmap.isDisposed()) {
-                physicsPixmap.dispose();
-                Gdx.app.log("Main", "Disposed physics heightmap Pixmap.");
-            }
-        }
-
-        Gdx.app.log("Main", "Terrain creation routine finished.");
-    }
-
-    @Override
-    public void resize(int width, int height) {
-        sceneManager.updateViewport(width, height);
-    }
-
+    /**
+     * Wird kontinuierlich aufgerufen (typischerweise 60 Mal pro Sekunde).
+     * Hier findet die Hauptlogik des Spiels statt: Input verarbeiten,
+     * Physik simulieren, Zustände aktualisieren, Rendern.
+     */
     @Override
     public void render() {
+        // 1. Delta Time holen und begrenzen
+        // deltaTime: Zeit seit dem letzten Frame in Sekunden. Wichtig für zeitbasierte Bewegung/Physik.
         float deltaTime = Gdx.graphics.getDeltaTime();
-        deltaTime = Math.min(deltaTime, 1f / 30f); // Max Timestep für Physik
+        // Begrenzung: Verhindert "Explosionen" in der Physik, wenn das Spiel kurz hängt (großes deltaTime).
+        deltaTime = Math.min(deltaTime, 1f / 30f); // Maximal 1/30 Sekunde pro Physikschritt
 
-        // Input für Physik verarbeiten
-        handleInput();
+        // 2. Spieler-Input verarbeiten --- NEU
+        // Delegiert die Verarbeitung von WASD, Sprung etc. an den Handler.
+        if (playerInputHandler != null) {
+            playerInputHandler.processInput();
+        }
 
-        // Physik-Welt aktualisieren
+
+
+        // 3. Physik-Welt aktualisieren
+        // Lässt die Physik-Engine die Zeit (deltaTime) weiterschreiten.
+        // Bewegt Objekte, prüft Kollisionen, wendet Schwerkraft an etc.
         if (physicsSystem != null) {
             physicsSystem.update(deltaTime);
         }
 
-        // Grafik an Physik anpassen
+
+
+
+        // 4. Grafik an Physik anpassen
+        // Holt die neue Position/Rotation des Physik-Körpers des Spielers
+        // und wendet sie auf die Transformation des sichtbaren Spieler-Modells an.
         if (characterPhysics != null) {
             characterPhysics.updateGraphicsTransform();
+            // HINWEIS: Hier war der Ort für den manuellen Grafik-Offset, falls das Modell schwebt!
+            // float modelOffsetY = -1.0f; // Beispiel
+            // characterPhysics.modelInstance.transform.translate(0, modelOffsetY, 0);
         }
 
-        // Kamera aktualisieren
+        // 5. Kamera aktualisieren
+        // Aktualisiert die Kameraposition basierend auf der (aktualisierten) Spielerposition.
         if (characterPhysics != null && playerCameraController != null && player != null) {
-            playerPhysicsPosition.set(characterPhysics.modelInstance.transform.getTranslation(tmpVec));
-            playerCameraController.update(playerPhysicsPosition, player.getAngleBehindPlayer(), deltaTime);
+            playerPhysicsPosition.set(characterPhysics.modelInstance.transform.getTranslation(tmpVec)); // Hole aktuelle Grafik-Position
+            playerCameraController.update(playerPhysicsPosition, player.getAngleBehindPlayer(), deltaTime); // Kamera-Controller updaten
         }
 
-        // --- SceneManager und Rendern ---
+        // 6. SceneManager updaten
+        // Aktualisiert interne Zustände des SceneManagers (z.B. Animationen).
         sceneManager.update(deltaTime);
-        Gdx.gl.glClearColor(0.3f, 0.5f, 0.7f, 1f); // Himmelblau als Hintergrund
-        Gdx.gl.glClear(GL20.GL_COLOR_BUFFER_BIT | GL20.GL_DEPTH_BUFFER_BIT);
+
+        // 7. Bildschirm löschen
+        // Bereitet den Bildschirm für das Zeichnen des neuen Frames vor.
+        Gdx.gl.glClearColor(0.3f, 0.5f, 0.7f, 1f); // Setzt die Hintergrundfarbe (Himmelblau)
+        Gdx.gl.glClear(GL20.GL_COLOR_BUFFER_BIT | GL20.GL_DEPTH_BUFFER_BIT); // Löscht Farb- und Tiefenpuffer
+
+        // 8. Szene rendern
+        // Zeichnet alle sichtbaren Objekte (Spieler, Terrain, Skybox) mit Licht etc.
         sceneManager.render();
 
-        // --- Physik Debug zeichnen (wenn aktiviert) --- NEU
+        // 9. Physik Debug zeichnen (wenn aktiviert) --- NEU
+        // Zeichnet die Drahtgitter-Formen der Physik-Körper über die gerenderte Szene.
         if (drawDebug && debugDrawer != null && shapeRenderer != null && physicsSystem != null) {
-            shapeRenderer.setProjectionMatrix(camera.combined);
-            shapeRenderer.begin(ShapeRenderer.ShapeType.Line);
-            physicsSystem.dynamicsWorld.debugDrawWorld();
-            shapeRenderer.end();
+            shapeRenderer.setProjectionMatrix(camera.combined); // WICHTIG: Gleiche Sicht wie die Kamera
+            shapeRenderer.begin(ShapeRenderer.ShapeType.Line); // Beginne Linien zu zeichnen
+            physicsSystem.dynamicsWorld.debugDrawWorld(); // Sage Bullet, es soll sich zeichnen
+            shapeRenderer.end(); // Beende das Zeichnen
         }
-        // --- Ende Physik Debug zeichnen ---
 
-        // --- Andere Tastenabfragen ---
+        // 10. Andere Tastenabfragen (die nicht zur Spielerbewegung gehören)
+        // Diese werden einmal pro Frame geprüft.
         if (Gdx.input.isKeyJustPressed(Input.Keys.F1)) {
-            createTerrain();
+            if (terrainManager != null) { // Prüfen ob der Manager existiert
+                Gdx.app.log("Main", "F1 pressed, requesting terrain recreation...");
+                if (!terrainManager.createOrReplaceTerrain()) { // Rufe die Methode im Manager auf
+                    Gdx.app.error("Main", "Terrain recreation FAILED!");
+                }
+            }
         }
         if (Gdx.input.isKeyJustPressed(Input.Keys.ESCAPE)) {
-            toggleFullscreen();
+            toggleFullscreen(); // Schaltet Vollbild an/aus
         }
-        // if (Gdx.input.isKeyJustPressed(Input.Keys.SPACE)) { // Wird in handleInput() für Sprung genutzt
-        //     Gdx.app.log("Main", "Space pressed - potential action trigger");
-        // }
-    }
+    } // Ende render()
 
+
+    /**
+     * Hilfsmethode zum Umschalten des Vollbildmodus.
+     */
     private void toggleFullscreen() {
+        // Prüft, ob das Spiel gerade im Vollbild ist
         if (Gdx.graphics.isFullscreen()) {
-            Gdx.graphics.setWindowedMode(1280, 720);
+            // Wenn ja, wechsle zurück zum Fenster-Modus
+            Gdx.graphics.setWindowedMode(1280, 720); // Feste Größe oder letzte bekannte Größe
             Gdx.app.log("Main", "Switched to windowed mode.");
-            Gdx.input.setCursorCatched(false);
+            Gdx.input.setCursorCatched(false); // Mauszeiger wieder sichtbar machen
         } else {
-            Graphics.Monitor currMonitor = Gdx.graphics.getPrimaryMonitor();
-            Graphics.DisplayMode displayMode = Gdx.graphics.getDisplayMode(currMonitor);
-            if (Gdx.graphics.setFullscreenMode(displayMode)) {
+            // Wenn nein, versuche in den Vollbildmodus zu wechseln
+            Graphics.Monitor currMonitor = Gdx.graphics.getPrimaryMonitor(); // Hauptmonitor holen
+            Graphics.DisplayMode displayMode = Gdx.graphics.getDisplayMode(currMonitor); // Dessen Auflösung holen
+            if (Gdx.graphics.setFullscreenMode(displayMode)) { // Versuche umzuschalten
                 Gdx.app.log("Main", "Switched to fullscreen mode.");
-                Gdx.input.setCursorCatched(true);
+                Gdx.input.setCursorCatched(true); // Mauszeiger wieder fangen
             } else {
-                Gdx.app.error("Graphics", "Fullscreen mode failed.");
+                Gdx.app.error("Graphics", "Fullscreen mode failed."); // Falls es nicht klappt
             }
         }
-    }
-
-    private void handleInput() {
-        if (characterPhysics == null || characterPhysics.body == null) return;
-
-        // --- KORREKTUR HIER ---
-        // Erstelle einen NEUEN Vektor für die Bewegungsrichtung, initialisiert mit (0,0,0)
-        Vector3 moveDirection = new Vector3(); // Nicht tmpVec zuweisen!
-        // tmpVec kann weiterhin für Berechnungen wie das Kreuzprodukt verwendet werden
-        // --- ENDE KORREKTUR ---
+    } // Ende toggleFullscreen()
 
 
-        // --- Richtungen sammeln (Basis W/S) ---
-        if (Gdx.input.isKeyPressed(Input.Keys.W)) {
-            // tmpVec holen wir uns nur für die Richtung, ändern moveDirection direkt
-            tmpVec.set(camera.direction); // Holen der Kamerarichtung
-            moveDirection.add(tmpVec.x, 0, tmpVec.z); // Addiere zur (anfangs leeren) moveDirection
-        }
-        if (Gdx.input.isKeyPressed(Input.Keys.S)) {
-            tmpVec.set(camera.direction); // Holen der Kamerarichtung
-            moveDirection.sub(tmpVec.x, 0, tmpVec.z); // Subtrahiere von moveDirection
-        }
-
-        // --- Richtungen sammeln (A/D) ---
-        if (Gdx.input.isKeyPressed(Input.Keys.A)) {
-            // tmpVec für die Berechnung des Links-Vektors verwenden
-            tmpVec.set(camera.direction).crs(camera.up).nor(); // tmpVec = Links
-            // Gdx.app.log("Input", "A pressed. Adding Left Vector: " + tmpVec);
-            // Addiere die Links-Komponenten zur bestehenden moveDirection (die schon W/S enthalten kann)
-            moveDirection.sub(tmpVec.x, 0, tmpVec.z);
-        }
-        if (Gdx.input.isKeyPressed(Input.Keys.D)) {
-            // tmpVec für die Berechnung des Links-Vektors verwenden
-            tmpVec.set(camera.direction).crs(camera.up).nor(); // tmpVec = Links
-            // Gdx.app.log("Input", "D pressed. Subtracting Left Vector: " + tmpVec);
-            // Subtrahiere die Links-Komponenten von der bestehenden moveDirection
-            moveDirection.add(tmpVec.x, 0, tmpVec.z); // Korrekt für Rechtsbewegung
-        }
-
-
-        // --- Bewegung anwenden oder stoppen ---
-        if (!moveDirection.isZero()) {
-            moveDirection.nor(); // Normalisieren der kombinierten Richtung
-
-            Vector3 currentLinearVelocity = characterPhysics.body.getLinearVelocity();
-            newVelocity.set(moveDirection).scl(MOVE_SPEED);
-            newVelocity.y = currentLinearVelocity.y;
-            characterPhysics.body.setLinearVelocity(newVelocity);
-            characterPhysics.body.activate();
-            characterPhysics.body.setAngularVelocity(Vector3.Zero);
-            characterPhysics.body.setAngularVelocity(Vector3.Zero); // Verhindert Physik-Drehung
-
-
-
-        } else { // Keine Bewegungstaste
-            Vector3 currentLinearVelocity = characterPhysics.body.getLinearVelocity();
-            stopHorizontalVelocity.set(0, currentLinearVelocity.y, 0);
-            characterPhysics.body.setLinearVelocity(stopHorizontalVelocity);
-            characterPhysics.body.setAngularVelocity(Vector3.Zero);
-        }
-
-        // --- Sprung ---
-        if (Gdx.input.isKeyJustPressed(Input.Keys.SPACE)) {
-            Vector3 currentLinearVelocity = characterPhysics.body.getLinearVelocity();
-            if (Math.abs(currentLinearVelocity.y) < 0.5f) {
-                characterPhysics.jump(JUMP_FORCE);
-            }
-        }
-        // Die Normalisierung am Ende wird nicht mehr benötigt/ist falsch platziert
-    }
     // --- InputProcessor Methoden ---
+    // Diese Methoden werden von LibGDX aufgerufen, wenn ein entsprechendes Input-Event passiert.
+    // Da wir `Gdx.input.setInputProcessor(this);` gesetzt haben, landen die Events hier.
+
+    /** Wird aufgerufen, wenn eine Taste GEDRÜCKT wird. */
     @Override
     public boolean keyDown(int keycode) {
+        // Kameramodus mit TAB umschalten
         if (keycode == Input.Keys.TAB) {
-            if (playerCameraController != null && player != null) {
-                playerCameraController.toggleCameraMode(player.getAngleBehindPlayer());
-                CameraMode currentMode = playerCameraController.getCameraMode();
-                boolean captureCursor = (currentMode == CameraMode.FREE_LOOK);
-                Gdx.input.setCursorCatched(captureCursor);
+            if (playerCameraController != null && player != null) { // Sicherstellen, dass Objekte existieren
+                playerCameraController.toggleCameraMode(player.getAngleBehindPlayer()); // Modus im Controller umschalten
+                CameraMode currentMode = playerCameraController.getCameraMode(); // Neuen Modus abfragen
+                boolean captureCursor = (currentMode == CameraMode.FREE_LOOK); // Cursor nur im Free Look fangen
+                Gdx.input.setCursorCatched(captureCursor); // Cursor entsprechend setzen
                 Gdx.app.log("Main", "Toggled camera mode to: " + currentMode + ", Cursor captured: " + captureCursor);
-                return true;
+                return true; // true: Signalisiert, dass das Event hier behandelt wurde
             }
         }
-        // Debug Drawing Toggle - NEU
+        // Debug Drawing mit F3 umschalten - NEU
         if (keycode == Input.Keys.F3) {
-            drawDebug = !drawDebug;
+            drawDebug = !drawDebug; // Invertiert den boolean-Wert
             Gdx.app.log("Main", "Debug Drawing toggled: " + drawDebug);
-            return true;
+            return true; // Event behandelt
         }
-        return false;
+        // F1 und ESC werden in render() über isKeyJustPressed geprüft, da sie nur einmal auslösen sollen.
+        return false; // false: Signalisiert, dass das Event nicht behandelt wurde (andere Listener könnten es bekommen)
     }
 
-    @Override
-    public boolean keyUp(int keycode) { return false; }
-    @Override
-    public boolean keyTyped(char character) { return false; }
-    @Override
-    public boolean touchDown(int screenX, int screenY, int pointer, int button) { return false; }
-    @Override
-    public boolean touchUp(int screenX, int screenY, int pointer, int button) { return false; }
-    @Override
-    public boolean touchCancelled(int screenX, int screenY, int pointer, int button) { return false; }
-    @Override
-    public boolean touchDragged(int screenX, int screenY, int pointer) { return false; }
-    @Override
-    public boolean mouseMoved(int screenX, int screenY) { return false; }
-
+    /** Wird aufgerufen, wenn das Mausrad gescrollt wird. */
     @Override
     public boolean scrolled(float amountX, float amountY) {
-        if (playerCameraController != null) return playerCameraController.scrolled(amountY);
-        return false;
+        // Delegiert das Scroll-Event an den Kamera-Controller für Zoom
+        if (playerCameraController != null) {
+            return playerCameraController.scrolled(amountY); // amountY ist die vertikale Scroll-Richtung
+        }
+        return false; // Nicht behandelt, falls kein Controller da ist
     }
 
-    // --- AnimationListener Methoden ---
-    @Override
-    public void onEnd(AnimationController.AnimationDesc animation) { }
-    @Override
-    public void onLoop(AnimationController.AnimationDesc animation) { }
+    // --- Andere InputProcessor Methoden (meist nicht benötigt für einfaches Spiel) ---
+    @Override public boolean keyUp(int keycode) { return false; } // Taste losgelassen
+    @Override public boolean keyTyped(char character) { return false; } // Taste getippt (Zeicheneingabe)
+    @Override public boolean touchDown(int screenX, int screenY, int pointer, int button) { return false; } // Touchscreen/Maus Klick Start
+    @Override public boolean touchUp(int screenX, int screenY, int pointer, int button) { return false; } // Touchscreen/Maus Klick Ende
+    @Override public boolean touchCancelled(int screenX, int screenY, int pointer, int button) { return false; } // Touch abgebrochen (Android)
+    @Override public boolean touchDragged(int screenX, int screenY, int pointer) { return false; } // Touchscreen/Maus gezogen
+    @Override public boolean mouseMoved(int screenX, int screenY) { return false; } // Maus bewegt (ohne Klick) - wird oft direkt in Controllern abgefragt
 
-    // --- Dispose ---
+
+    // --- AnimationListener Methoden ---
+    // (Optional) Werden aufgerufen, wenn Animationen enden oder loopen.
+    @Override public void onEnd(AnimationController.AnimationDesc animation) { }
+    @Override public void onLoop(AnimationController.AnimationDesc animation) { }
+
+
+    /**
+     * Wird EINMAL beim Beenden der Anwendung aufgerufen.
+     * SEHR WICHTIG: Hier müssen alle Ressourcen freigegeben werden, die nicht
+     * automatisch vom Garbage Collector entfernt werden (z.B. Texturen, Meshes, Physik-Objekte, Shader).
+     * Sonst entstehen Speicherlecks!
+     */
     @Override
     public void dispose() {
         Gdx.app.log("Main", "Disposing resources...");
 
-        // Reihenfolge: Physik -> Debug Drawer -> Szenen/Assets -> IBL/Skybox -> Visuelles Terrain
+        // Reihenfolge ist wichtig: Abhängige Objekte zuerst, dann die Systeme.
 
-        // Physik
-        if (characterPhysics != null) characterPhysics.dispose();
-        if (terrainPhysics != null) terrainPhysics.dispose();
-        if (physicsHeightField != null) physicsHeightField.dispose(); // Das separate HeightField Objekt
-        if (physicsSystem != null) physicsSystem.dispose();
-        Gdx.app.log("Main", "Physics disposed.");
+        // 1. Eigene Handler/Manager zuerst (damit sie ihre internen Ressourcen freigeben)
+        if (terrainManager != null) {
+            terrainManager.dispose(); // Ruft disposeCurrentTerrain() auf
+        }
+        Gdx.app.log("Main", "Disposed TerrainManager.");
+        // PlayerInputHandler hat normalerweise nichts zum Disposen
 
-        // Debug Drawer Ressourcen - NEU
-        if (shapeRenderer != null) shapeRenderer.dispose();
-        if (debugDrawer != null) debugDrawer.dispose();
+        // 2. Charakter-Physik (wenn nicht schon vom Manager disposed)
+        if (characterPhysics != null) {
+            characterPhysics.dispose();
+        }
+        Gdx.app.log("Main", "Disposed CharacterPhysics.");
+
+        // 3. Physik-System (Welt, Konfiguration etc.)
+        if (physicsSystem != null) {
+            physicsSystem.dispose();
+        }
+        Gdx.app.log("Main", "Disposed PhysicsSystem.");
+
+        // 4. Debug Drawer Ressourcen
+        if (shapeRenderer != null) {
+            shapeRenderer.dispose();
+        }
+        if (debugDrawer != null) {
+            // Obwohl btIDebugDraw kein direktes dispose() hat, ist es gute Praxis,
+            // die Referenz auf null zu setzen oder sicherzustellen, dass es nicht mehr verwendet wird.
+            // Manche Implementierungen könnten Ressourcen halten.
+            debugDrawer = null; // Referenz entfernen
+        }
         Gdx.app.log("Main", "Disposed debug drawer resources.");
 
-        // SceneManager und Assets
-        if (sceneManager != null) sceneManager.dispose(); // Sollte enthaltene Scenes/Ressourcen disposen
-        if (sceneAsset != null) sceneAsset.dispose();
-        Gdx.app.log("Main", "SceneManager and player asset disposed.");
+        // 5. SceneManager und GLTF Assets
+        // SceneManager.dispose() sollte die von ihm verwalteten Szenen und deren
+        // ModelInstances/Meshes/Texturen freigeben, wenn sie nicht woanders noch referenziert werden.
+        if (sceneManager != null) {
+            sceneManager.dispose();
+        }
+        // Das SceneAsset enthält die Rohdaten, die auch freigegeben werden müssen.
+        if (sceneAsset != null) {
+            sceneAsset.dispose();
+        }
+        Gdx.app.log("Main", "Disposed SceneManager and player sceneAsset.");
 
-        // IBL Texturen und Skybox
+        // 6. IBL Texturen und Skybox
         if (environmentCubemap != null) environmentCubemap.dispose();
         if (diffuseCubemap != null) diffuseCubemap.dispose();
         if (specularCubemap != null) specularCubemap.dispose();
         if (brdfLUT != null) brdfLUT.dispose();
-        if (skybox != null) skybox.dispose();
-        Gdx.app.log("Main", "IBL and skybox disposed.");
+        if (skybox != null) skybox.dispose(); // Skybox hält auch Referenzen
+        Gdx.app.log("Main", "Disposed IBL and skybox resources.");
 
-        // Visuelles Terrain
-        if (terrain != null) terrain.dispose(); // Das HeightMapTerrain Objekt
-        Gdx.app.log("Main", "Visual terrain disposed.");
+        // Visuelles Terrain wird jetzt vom TerrainManager disposed.
 
         Gdx.app.log("Main", "Dispose complete.");
-    }
-}
+    } // Ende dispose()
+} // Ende Main Klasse
