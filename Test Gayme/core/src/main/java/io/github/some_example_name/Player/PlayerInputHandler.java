@@ -63,11 +63,11 @@ public class PlayerInputHandler {
         }
         if (Gdx.input.isKeyPressed(Input.Keys.A)) {
             tmpVec.set(camera.direction).crs(camera.up).nor(); // tmpVec = Links
-            moveDirection.add(tmpVec.x, 0, tmpVec.z); // Addiere Links-Komponenten
+            moveDirection.sub(tmpVec.x, 0, tmpVec.z); // Addiere Links-Komponenten
         }
         if (Gdx.input.isKeyPressed(Input.Keys.D)) {
             tmpVec.set(camera.direction).crs(camera.up).nor(); // tmpVec = Links
-            moveDirection.sub(tmpVec.x, 0, tmpVec.z);
+            moveDirection.add(tmpVec.x, 0, tmpVec.z);
             // Subtrahiere Links-Komponenten -> ergibt Rechts
         }
 

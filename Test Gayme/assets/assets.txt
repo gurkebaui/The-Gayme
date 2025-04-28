@@ -1,7 +1,3 @@
-Models/Bean1.bin
-Models/Smoke/k.bin
-Models/Smoke/k.gltf
-Models/Smoke/smoke.part
 Models/bean.bin
 Models/bean.gltf
 Models/drive.bin
