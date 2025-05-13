@@ -78,6 +78,10 @@ public class Main extends ApplicationAdapter implements AnimationController.Anim
     private SceneAsset houseSceneAsset;     // Asset für das HAUS-Modell (wird einmal geladen)
     private Array<Scene> houseVisualScenes = new Array<>(); // Hält die einzelnen visuellen Szenen der platzierten Häuser
     private Array<StaticObjectPhysics> housePhysicsBodies = new Array<>(); // Hält die Physik-Körper der Häuser
+    private SceneAsset kaktiSceneAsset;     // Asset für das HAUS-Modell (wird einmal geladen)
+    private Array<Scene> kaktiVisualScenes = new Array<>(); // Hält die einzelnen visuellen Szenen der platzierten Häuser
+    private Array<StaticObjectPhysics> kaktiPhysicsBodies = new Array<>(); // Hält die Physik-Körper der Häuser
+
 
     // --- Spiel-Logik ---
     // Objekte, die den Zustand und das Verhalten von Spielelementen steuern.
@@ -251,6 +255,18 @@ public class Main extends ApplicationAdapter implements AnimationController.Anim
             // oder ob es ein kritischer Fehler ist.
         }
 
+        String kaktiModelPath = "Models/bean.gltf"; // DEIN HAUSPFAD als Variable definieren
+        assetManager.load(kaktiModelPath, SceneAsset.class);
+        assetManager.finishLoading();
+        if (assetManager.isLoaded(kaktiModelPath, SceneAsset.class)) {
+            kaktiSceneAsset = assetManager.get(kaktiModelPath, SceneAsset.class);
+            Gdx.app.log("Main", "House SceneAsset '" + kaktiModelPath + "' erfolgreich geladen.");
+        } else {
+            Gdx.app.error("Main", "House SceneAsset '" + kaktiModelPath + "' konnte NICHT geladen werden!");
+            // Hier könntest du entscheiden, ob das Spiel ohne Häuser weiterlaufen soll
+            // oder ob es ein kritischer Fehler ist.
+        }
+
         // --- Handler-Instanzen erstellen (Spieler-spezifisch) ---
         // Erstellt die Objekte, die die Spielerlogik und Kamerasteuerung kapseln.
         player = new Player(playerScene); // Übergibt die Szene an die Player-Logik
@@ -345,6 +361,10 @@ public class Main extends ApplicationAdapter implements AnimationController.Anim
         // Stelle sicher, dass das Haus-Asset geladen ist (houseSceneAsset wurde in create() zugewiesen)
         if (houseSceneAsset == null) {
             Gdx.app.error("Main", "House SceneAsset is null! Cannot create houses.");
+            return; // Abbrechen, wenn das Asset fehlt
+        }
+        if (kaktiSceneAsset == null) {
+            Gdx.app.error("Main", "Kakti SceneAsset is null! Cannot create houses.");
             return; // Abbrechen, wenn das Asset fehlt
         }
 
@@ -479,6 +499,38 @@ public class Main extends ApplicationAdapter implements AnimationController.Anim
         housePhysicsBodies.add(physicsForHouse3);
         physicsForHouse3.body.userData = "Haus_3";
         Gdx.app.log("Main", "Created and placed house 3.");
+
+        // --- kakti1 (Beispiel) ---
+        Vector3 kakti1Position = new Vector3(450f, 30f, 400f); // ANPASSEN
+        float kakti1RotationY = -30f; // ANPASSEN
+
+        Scene kakti1Visual = new Scene(kaktiSceneAsset.scene);
+        kakti1Visual.modelInstance.transform.setToTranslation(kakti1Position);
+        kakti1Visual.modelInstance.transform.rotate(Vector3.Y, kakti1RotationY);
+        sceneManager.addScene(kakti1Visual);
+        houseVisualScenes.add(kakti1Visual);
+
+        Vector3 kaktiHalfExtents = new Vector3(5f, 6f, 4f);
+        // Annahme: Gleiche Größe wie Haus 1, sonst eigene halfExtents definieren
+        Matrix4 kakti1PhysicsTransform = new Matrix4();
+        Vector3 kakti1PhysicsCenterPos = new Vector3(kakti1Position.x, kakti1Position.y + kaktiHalfExtents.y, kakti1Position.z);
+        Quaternion kakti1Rotation = tmpQuat.setFromAxis(Vector3.Y, kakti1RotationY); // tmpQuat wiederverwenden
+        Vector3 kakti1Scale = tmpVec2.set(1, 1, 1); // tmpVec2 wiederverwenden
+
+        // Manuelles Setzen für Haus 2
+        kakti1PhysicsTransform.idt();
+        kakti1PhysicsTransform.translate(kakti1PhysicsCenterPos);
+        kakti1PhysicsTransform.rotate(kakti1Rotation);
+        // house2PhysicsTransform.scale(house2Scale.x, house2Scale.y, house2Scale.z); // Wenn Skalierung nötig
+
+        StaticObjectPhysics physicsForKakti1 = new StaticObjectPhysics(
+                physicsSystem,
+                houseHalfExtents, // Oder andere Maße
+                kakti1PhysicsTransform
+        );
+        housePhysicsBodies.add(physicsForKakti1);
+        physicsForKakti1.body.userData = "Kakti_1";
+        Gdx.app.log("Main", "Created and placed kakti1.");
 
         // ... Füge weitere Häuser hinzu ...
     }
