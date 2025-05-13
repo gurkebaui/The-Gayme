@@ -3,6 +3,7 @@ package io.github.some_example_name; // Definiert, zu welchem Paket diese Klasse
 // --- LibGDX Core Imports ---
 // Diese Klassen sind grundlegend für fast jede LibGDX Anwendung.
 import com.badlogic.gdx.*; // Stellt grundlegende App-Funktionen bereit (Input, Graphics, Files etc.)
+import com.badlogic.gdx.assets.AssetManager;
 import com.badlogic.gdx.graphics.*; // Klassen für Grafik (Farben, Texturen, Kamera, Pixmap etc.)
 import com.badlogic.gdx.graphics.g3d.Environment; // Enthält Informationen über die 3D-Umgebung (Licht, Schatten etc.) - Wird vom SceneManager verwendet
 import com.badlogic.gdx.graphics.g3d.ModelInstance; // Eine konkrete Instanz eines 3D-Modells in der Welt
@@ -13,6 +14,7 @@ import com.badlogic.gdx.math.Matrix4; // Eine 4x4 Matrix, oft für Transformatio
 import com.badlogic.gdx.math.Quaternion;
 import com.badlogic.gdx.math.Vector3; // Ein Vektor mit 3 Komponenten (x, y, z) für Positionen, Richtungen, etc.
 import com.badlogic.gdx.math.collision.BoundingBox; // Definiert einen achsenparallelen Quader (nützlich für Kollisionsabschätzung etc.)
+import com.badlogic.gdx.utils.Array;
 import com.badlogic.gdx.utils.Disposable; // Interface für Klassen, die Ressourcen freigeben müssen (z.B. Texturen, Meshes)
 
 // --- Physik (Bullet Wrapper) Imports ---
@@ -22,6 +24,7 @@ import com.badlogic.gdx.physics.bullet.linearmath.btIDebugDraw; // Interface fü
 
 // --- GLTF Scene Management Imports ---
 // Klassen für das Laden und Managen von GLTF 3D-Szenen (ein modernes 3D-Format)
+import io.github.some_example_name.Physiks.StaticObjectPhysics;
 import net.mgsx.gltf.loaders.gltf.GLTFLoader; // Lädt GLTF-Dateien
 import net.mgsx.gltf.scene3d.attributes.PBRCubemapAttribute; // Spezielle Attribute für Physically Based Rendering (PBR) mit Cubemaps
 import net.mgsx.gltf.scene3d.attributes.PBRTextureAttribute;  // PBR-Attribute mit Texturen
@@ -63,7 +66,7 @@ public class Main extends ApplicationAdapter implements AnimationController.Anim
     // Diese Objekte sind für das Anzeigen der 3D-Welt zuständig.
     private SceneManager sceneManager;      // Rendert die GLTF-Szenen, Skybox, etc.
     private SceneAsset sceneAsset;          // Hält die geladenen Daten der Spieler-GLTF-Datei
-    private Scene playerScene;              // Die spezifische Szene des Spielers aus der GLTF-Datei
+    private Scene playerScene;// Die spezifische Szene des Spielers aus der GLTF-Datei
     // terrainScene wird jetzt vom TerrainManager verwaltet
     private PerspectiveCamera camera;       // Die virtuelle Kamera, durch die wir die Welt sehen
     private Cubemap diffuseCubemap;         // Texturen für Image Based Lighting (diffuse Reflexionen)
@@ -71,7 +74,10 @@ public class Main extends ApplicationAdapter implements AnimationController.Anim
     private Cubemap specularCubemap;        // Texturen für Image Based Lighting (spiegelnde Reflexionen)
     private Texture brdfLUT;                // Eine Lookup-Textur für PBR-Berechnungen
     private SceneSkybox skybox;             // Das Objekt, das die Skybox zeichnet
-    private DirectionalLightEx light;       // Das Haupt-Sonnenlicht in der Szene
+    private DirectionalLightEx light;// Das Haupt-Sonnenlicht in der Szene
+    private SceneAsset houseSceneAsset;     // Asset für das HAUS-Modell (wird einmal geladen)
+    private Array<Scene> houseVisualScenes = new Array<>(); // Hält die einzelnen visuellen Szenen der platzierten Häuser
+    private Array<StaticObjectPhysics> housePhysicsBodies = new Array<>(); // Hält die Physik-Körper der Häuser
 
     // --- Spiel-Logik ---
     // Objekte, die den Zustand und das Verhalten von Spielelementen steuern.
@@ -80,7 +86,8 @@ public class Main extends ApplicationAdapter implements AnimationController.Anim
     private final Vector3 tmpVec2 = new Vector3();
     private final Quaternion tmpQuat = new Quaternion();// Steuert die Bewegung und Ausrichtung der Kamera
     private final Vector3 tmpVec = new Vector3(); // Für die berechnete Rotation
-    private final Matrix4 tmpMat = new Matrix4(); // Zum Erstellen der Rotationsmatrix
+    private final Matrix4 tmpMat = new Matrix4();
+    private AssetManager assetManager;
 
     // --- Physik ---
     // Objekte für die Physiksimulation mit Bullet.
@@ -125,6 +132,8 @@ public class Main extends ApplicationAdapter implements AnimationController.Anim
      * Wird EINMAL beim Start der Anwendung aufgerufen.
      * Hier werden alle Ressourcen geladen und Objekte initialisiert.
      */
+
+
     @Override
     public void create() {
         // --- Grundlegende Initialisierungen ---
@@ -214,6 +223,9 @@ public class Main extends ApplicationAdapter implements AnimationController.Anim
         skybox = new SceneSkybox(environmentCubemap); // Verwendet die Spiegelungs-Cubemap
         sceneManager.setSkyBox(skybox);
 
+        assetManager = new AssetManager();
+        assetManager.setLoader(SceneAsset.class, ".gltf", new net.mgsx.gltf.loaders.gltf.GLTFAssetLoader());
+
         // --- Spieler-Modell laden ---
         // Lädt die GLTF-Datei und erstellt eine Szene daraus.
         sceneAsset = new GLTFLoader().load(Gdx.files.internal(CHARACTER_MODEL_PATH)); // Lädt die Datei
@@ -225,6 +237,18 @@ public class Main extends ApplicationAdapter implements AnimationController.Anim
             Gdx.app.log("Main", "Started player animation: " + playerScene.modelInstance.animations.first().id);
         } else {
             Gdx.app.log("Main", "Player model has no animations.");
+        }
+
+        String houseModelPath = "Models/drivee.gltf"; // DEIN HAUSPFAD als Variable definieren
+        assetManager.load(houseModelPath, SceneAsset.class);
+        assetManager.finishLoading();
+        if (assetManager.isLoaded(houseModelPath, SceneAsset.class)) {
+            houseSceneAsset = assetManager.get(houseModelPath, SceneAsset.class);
+            Gdx.app.log("Main", "House SceneAsset '" + houseModelPath + "' erfolgreich geladen.");
+        } else {
+            Gdx.app.error("Main", "House SceneAsset '" + houseModelPath + "' konnte NICHT geladen werden!");
+            // Hier könntest du entscheiden, ob das Spiel ohne Häuser weiterlaufen soll
+            // oder ob es ein kritischer Fehler ist.
         }
 
         // --- Handler-Instanzen erstellen (Spieler-spezifisch) ---
@@ -302,9 +326,164 @@ public class Main extends ApplicationAdapter implements AnimationController.Anim
             // Sollte nicht passieren, wenn GLTF-Laden funktioniert hat
             Gdx.app.error("Main", "playerScene.modelInstance is NULL. Cannot create CharacterPhysics or PlayerInputHandler!");
         }
+
+        if (houseSceneAsset != null) { // Nur wenn das Haus-Asset geladen wurde
+            createStaticObjects();
+            Gdx.app.log("Main", "house created");
+        } else {
+            Gdx.app.log("Main", "houseSceneAsset ist null, createStaticObjects() wird übersprungen.");
+        }
     } // Ende create()
 
+    // In Main.java
 
+// ... (andere Member-Variablen und Methoden der Main-Klasse) ...
+
+    private void createStaticObjects() {
+        Gdx.app.log("Main", "Creating static objects (houses)...");
+
+        // Stelle sicher, dass das Haus-Asset geladen ist (houseSceneAsset wurde in create() zugewiesen)
+        if (houseSceneAsset == null) {
+            Gdx.app.error("Main", "House SceneAsset is null! Cannot create houses.");
+            return; // Abbrechen, wenn das Asset fehlt
+        }
+
+        // --- Haus 1 ---
+        Vector3 house1Position = new Vector3(400f, 0f, 450f); // ANPASSEN: X, Basis-Y, Z
+        float house1RotationY = 45f; // ANPASSEN: Rotation um Y in Grad
+
+        // Visuelle Szene für Haus 1 erstellen
+        Scene house1Visual = new Scene(houseSceneAsset.scene); // Neue Instanz der Szene
+        house1Visual.modelInstance.transform.setToTranslation(house1Position);
+        house1Visual.modelInstance.transform.rotate(Vector3.Y, house1RotationY);
+        sceneManager.addScene(house1Visual);
+        houseVisualScenes.add(house1Visual);
+        Gdx.app.log("Main", "Created and placed visual house 1 (Scene) at " + house1Position + " with rotation " + house1RotationY);
+
+        // Physik-Körper erstellen
+        // WICHTIG: halfExtents an dein Hausmodell anpassen!
+        Vector3 houseHalfExtents = new Vector3(5f, 6f, 4f); // Bsp: halbe Breite, halbe HÖHE, halbe Tiefe
+
+        // Welt-Transformation für das Physik-Objekt
+        Matrix4 house1PhysicsTransform = new Matrix4(); // Erstellt Identitätsmatrix
+
+        // Position des Zentrums der Kollisionsbox
+        Vector3 house1PhysicsCenterPos = new Vector3(house1Position.x, house1Position.y + houseHalfExtents.y, house1Position.z);
+
+        // Rotation der Kollisionsbox
+        Quaternion house1Rotation = tmpQuat.setFromAxis(Vector3.Y, house1RotationY); // tmpQuat ist Member-Variable
+
+        // Skalierung (normalerweise 1,1,1 für Physik)
+        Vector3 house1Scale = tmpVec2.set(1, 1, 1); // tmpVec2 ist Member-Variable
+
+        // --- KORREKTE METHODE ZUM SETZEN DER MATRIX ---
+        // Reihenfolge: Zuerst Skalieren (auf Identität, also keine Änderung),
+        // dann Rotieren um den Ursprung, dann zum Zielort Translatieren.
+        // ODER: Matrix für jede Komponente einzeln aufbauen und kombinieren.
+        // Die .set(position, rotation, scale) Methode ist oft die einfachste.
+        // Wenn diese nicht existiert, bauen wir es manuell auf:
+
+        house1PhysicsTransform.idt(); // 1. Zurücksetzen zur Identitätsmatrix
+
+        // Wende die Transformationen in der Reihenfolge an, die das gewünschte Ergebnis liefert.
+        // Um ein Objekt an einer Position mit einer Rotation und Skalierung zu platzieren:
+        // 1. Verschiebe zum Zielort (Translation)
+        // 2. Rotiere um den lokalen Ursprung (der jetzt am Zielort ist)
+        // 3. Skaliere um den lokalen Ursprung (der jetzt am Zielort und rotiert ist)
+        // LibGDX Matrix-Multiplikationen sind von rechts nach links (M = T * R * S * Vertex)
+        // Also müssen wir die Matrix so aufbauen, dass sie S, dann R, dann T anwendet.
+        // Mit den set-Methoden ist es oft intuitiver:
+
+        house1PhysicsTransform.translate(house1PhysicsCenterPos); // 3. Zuletzt die Translation zum Weltmittelpunkt
+        house1PhysicsTransform.rotate(house1Rotation);            // 2. Davor die Rotation
+        // Skalierung wird hier nicht explizit angewendet, da sie (1,1,1) ist und die btBoxShape bereits skaliert ist.
+        // Wenn du eine Skalierung > 1 hättest, wäre es:
+        // house1PhysicsTransform.scale(house1Scale.x, house1Scale.y, house1Scale.z); // 1. Zuerst die Skalierung
+
+        // Alternativ und oft sicherer für TRS (Translate-Rotate-Scale)-Reihenfolge beim Aufbau:
+        // house1PhysicsTransform.setToTranslation(house1PhysicsCenterPos); // T
+        // house1PhysicsTransform.rotate(house1Rotation); // R (multipliziert von rechts: T * R)
+        // house1PhysicsTransform.scale(house1Scale.x, house1Scale.y, house1Scale.z); // S (multipliziert von rechts: T * R * S)
+        // Dies entspricht oft der set(pos, rot, scale) Logik.
+
+        // --- ENDE KORREKTUR ---
+
+        StaticObjectPhysics physicsForHouse1 = new StaticObjectPhysics(
+                physicsSystem,
+                houseHalfExtents,
+                house1PhysicsTransform // Die korrekt gesetzte Transformation
+        );
+        housePhysicsBodies.add(physicsForHouse1);
+        physicsForHouse1.body.userData = "Haus_1"; // Eindeutige ID
+        Gdx.app.log("Main", "Created physics for house 1.");
+
+
+        // --- Haus 2 (Beispiel) ---
+        Vector3 house2Position = new Vector3(450f, 0f, 400f); // ANPASSEN
+        float house2RotationY = -30f; // ANPASSEN
+
+        Scene house2Visual = new Scene(houseSceneAsset.scene);
+        house2Visual.modelInstance.transform.setToTranslation(house2Position);
+        house2Visual.modelInstance.transform.rotate(Vector3.Y, house2RotationY);
+        sceneManager.addScene(house2Visual);
+        houseVisualScenes.add(house2Visual);
+
+        // Annahme: Gleiche Größe wie Haus 1, sonst eigene halfExtents definieren
+        Matrix4 house2PhysicsTransform = new Matrix4();
+        Vector3 house2PhysicsCenterPos = new Vector3(house2Position.x, house2Position.y + houseHalfExtents.y, house2Position.z);
+        Quaternion house2Rotation = tmpQuat.setFromAxis(Vector3.Y, house2RotationY); // tmpQuat wiederverwenden
+        Vector3 house2Scale = tmpVec2.set(1, 1, 1); // tmpVec2 wiederverwenden
+
+        // Manuelles Setzen für Haus 2
+        house2PhysicsTransform.idt();
+        house2PhysicsTransform.translate(house2PhysicsCenterPos);
+        house2PhysicsTransform.rotate(house2Rotation);
+        // house2PhysicsTransform.scale(house2Scale.x, house2Scale.y, house2Scale.z); // Wenn Skalierung nötig
+
+        StaticObjectPhysics physicsForHouse2 = new StaticObjectPhysics(
+                physicsSystem,
+                houseHalfExtents, // Oder andere Maße
+                house2PhysicsTransform
+        );
+        housePhysicsBodies.add(physicsForHouse2);
+        physicsForHouse2.body.userData = "Haus_2";
+        Gdx.app.log("Main", "Created and placed house 2.");
+
+        // --- Haus 3 (Beispiel) ---
+        Vector3 house3Position = new Vector3(470f, 10f, 470f); // ANPASSEN
+        float house3RotationY = -30f; // ANPASSEN
+
+        Scene house3Visual = new Scene(houseSceneAsset.scene);
+        house3Visual.modelInstance.transform.setToTranslation(house3Position);
+        house3Visual.modelInstance.transform.rotate(Vector3.Y, house3RotationY);
+        sceneManager.addScene(house3Visual);
+        houseVisualScenes.add(house3Visual);
+
+        // Annahme: Gleiche Größe wie Haus 1, sonst eigene halfExtents definieren
+        Matrix4 house3PhysicsTransform = new Matrix4();
+        Vector3 house3PhysicsCenterPos = new Vector3(house3Position.x, house3Position.y + houseHalfExtents.y, house3Position.z);
+        Quaternion house3Rotation = tmpQuat.setFromAxis(Vector3.Y, house3RotationY); // tmpQuat wiederverwenden
+        Vector3 house3Scale = tmpVec2.set(1, 1, 1); // tmpVec2 wiederverwenden
+
+        // Manuelles Setzen für Haus 2
+        house3PhysicsTransform.idt();
+        house3PhysicsTransform.translate(house3PhysicsCenterPos);
+        house3PhysicsTransform.rotate(house3Rotation);
+        // house2PhysicsTransform.scale(house2Scale.x, house2Scale.y, house2Scale.z); // Wenn Skalierung nötig
+
+        StaticObjectPhysics physicsForHouse3 = new StaticObjectPhysics(
+                physicsSystem,
+                houseHalfExtents, // Oder andere Maße
+                house3PhysicsTransform
+        );
+        housePhysicsBodies.add(physicsForHouse3);
+        physicsForHouse3.body.userData = "Haus_3";
+        Gdx.app.log("Main", "Created and placed house 3.");
+
+        // ... Füge weitere Häuser hinzu ...
+    }
+
+// ... (Rest der Main-Klasse: create(), render(), dispose(), etc.) ...
     /**
      * Wird kontinuierlich aufgerufen (typischerweise 60 Mal pro Sekunde).
      * Hier findet die Hauptlogik des Spiels statt: Input verarbeiten,
@@ -531,9 +710,15 @@ public class Main extends ApplicationAdapter implements AnimationController.Anim
         if (brdfLUT != null) brdfLUT.dispose();
         if (skybox != null) skybox.dispose(); // Skybox hält auch Referenzen
         Gdx.app.log("Main", "Disposed IBL and skybox resources.");
+        if (houseSceneAsset != null) {
+            houseSceneAsset.dispose();
+            houseSceneAsset = null;
+        }
+        if (assetManager != null) {
+            assetManager.dispose(); // Gibt alle vom AssetManager geladenen Ressourcen frei
+        }
 
         // Visuelles Terrain wird jetzt vom TerrainManager disposed.
-
         Gdx.app.log("Main", "Dispose complete.");
     } // Ende dispose()
 } // Ende Main Klasse
