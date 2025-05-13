@@ -508,7 +508,7 @@ public class Main extends ApplicationAdapter implements AnimationController.Anim
         kakti1Visual.modelInstance.transform.setToTranslation(kakti1Position);
         kakti1Visual.modelInstance.transform.rotate(Vector3.Y, kakti1RotationY);
         sceneManager.addScene(kakti1Visual);
-        houseVisualScenes.add(kakti1Visual);
+        kaktiVisualScenes.add(kakti1Visual);
 
         Vector3 kaktiHalfExtents = new Vector3(5f, 6f, 4f);
         // Annahme: Gleiche Größe wie Haus 1, sonst eigene halfExtents definieren
@@ -528,7 +528,7 @@ public class Main extends ApplicationAdapter implements AnimationController.Anim
                 houseHalfExtents, // Oder andere Maße
                 kakti1PhysicsTransform
         );
-        housePhysicsBodies.add(physicsForKakti1);
+        kaktiPhysicsBodies.add(physicsForKakti1);
         physicsForKakti1.body.userData = "Kakti_1";
         Gdx.app.log("Main", "Created and placed kakti1.");
 
